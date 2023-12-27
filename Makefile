@@ -10,14 +10,15 @@ SRC = $(wildcard $(SRC_DIR)/*.cpp)
 OBJ = $(patsubst $(SRC_DIR)/%.cpp, $(OBJS_DIR)/%.o, $(SRC))
 
 EXE = $(BUILD_DIR)/edge
+TEST_FILE = test_file.edge
 
 all: dirs $(OBJS) edge
 
 run:
-	$(EXE)
+	$(EXE) $(TEST_FILE)
 
 crun: edge
-	$(EXE)
+	$(EXE) $(TEST_FILE)
 
 edge: $(OBJ)
 	$(CXX) $(OBJ) $(CXXFLAGS) -o $(EXE)
@@ -27,3 +28,6 @@ $(OBJS_DIR)/%.o: $(SRC_DIR)/%.cpp
 
 dirs:
 	mkdir -p ./$(BUILD_DIR) ./$(OBJS_DIR)
+
+clean:
+	rm $(EXE) $(OBJ)
