@@ -4,7 +4,9 @@
 
 #include <iostream>
 
-#include <Frontend.h>
+#include <Toolchain.h>
+
+using namespace edge;
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
@@ -12,9 +14,7 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  size_t length;
-  const char *file = edge::mapSourceFile(argv[1], length);
-  std::printf("%s", file);
+  std::unique_ptr<Toolchain> toolchain = std::make_unique<Toolchain>(argv[1]);
 
   return 0;
 }

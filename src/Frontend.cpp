@@ -1,6 +1,6 @@
 // Frontend.cpp
 // ~~~~~~~~~~~~
-// Implementations of frontend pro
+// Implementations of frontend module
 #include <Frontend.h>
 
 #include <fcntl.h>
@@ -8,8 +8,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+namespace edge {
+
 // Fast file read with mmap
-const char *edge::mapSourceFile(const char *fileName, size_t &length) {
+const char *mapSourceFile(const char *fileName, size_t &length) {
   int fd = open(fileName, O_RDONLY);
   if (fd == -1) {
     handleSourceReadError("Error opening file.", ENOENT);
@@ -21,6 +23,7 @@ const char *edge::mapSourceFile(const char *fileName, size_t &length) {
 
   length = sb.st_size;
 
+  madvise(NULL, length, MADV_SEQUENTIAL);
   const char *addr = static_cast<const char *>(
       mmap(NULL, length, PROT_READ, MAP_PRIVATE, fd, 0u));
 
@@ -29,3 +32,4 @@ const char *edge::mapSourceFile(const char *fileName, size_t &length) {
   }
   return addr;
 }
+} // namespace edge
