@@ -42,6 +42,7 @@ static const std::unordered_map<const char *, TokenKind> keywords = {
 struct Token {
   const char *start;
   const char *end;
+  const char *tokenStr;
   TokenKind kind;
   Token() = default;
   size_t getLength() const { return (end - start) + 1; }

@@ -97,12 +97,10 @@ bool Lexer::lexIdentifier(Token *out, const char *currPtr) {
   } while (isIdentifierChar(*currPtr));
   out->end = currPtr - 1;
 
-  size_t idStrLen = out->getLength() + 1;
-  char *idStr = new char[idStrLen];
-  std::memcpy(idStr, out->start, out->getLength());
+  std::memcpy(&(out->tokenStr), out->start, out->getLength());
 
-  if (MAP_FIND(keywords, idStr)) {
-    out->kind = keywords.at(idStr);
+  if (MAP_FIND(keywords, out->tokenStr)) {
+    out->kind = keywords.at(out->tokenStr);
   }
 
   bufPtr = currPtr;
