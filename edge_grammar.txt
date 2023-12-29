@@ -1,0 +1,23 @@
+EdgeLang grammar spec:
+
+<program> -> <expr_list> \n <output_stmt>
+
+<expr_list> -> <assign_expr> <expr_list>
+
+<assign_expr> -> ID = <expr>
+
+<expr> -> <term> <expr`>
+
+<expr`> -> <addop> <term> <expr`> | ϵ
+
+<term> -> <factor> <term`>
+
+<term`> -> <mulop> <factor> <term`> | ϵ
+
+<factor> -> ( <expr> ) | INTEGER | ID
+
+<addop> -> + | -
+
+<mulop> -> * | /
+
+<output_stmt> -> output <expr>

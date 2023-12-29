@@ -3,9 +3,8 @@
 // Toolchain implementation
 #include <Toolchain.h>
 
-
 namespace edge {
 
-void Toolchain::executeToolchain() { return; }
+void Toolchain::executeToolchain() { lexer->lexAndPrintTokens(); }
 
-} // namespace
+}  // namespace edge

@@ -6,24 +6,28 @@
 namespace edge {
 
 class Toolchain {
-
-private:
+ private:
   const char *fileName;
 
-  std::unique_ptr<Lexer> lexer;
-  std::unique_ptr<Parser> parser;
+  Lexer *lexer;
+  Parser *parser;
 
   void initFrontend() {
-    lexer = std::make_unique<Lexer>(fileName);
-    parser = std::make_unique<Parser>(std::move(lexer));
+    lexer = new Lexer(fileName);
+    parser = new Parser(lexer);
   }
 
-public:
+ public:
   Toolchain(const char *fileName) : fileName(fileName) { initFrontend(); }
+
+  ~Toolchain() {
+    delete lexer;
+    delete parser;
+  }
 
   void executeToolchain();
 
   const char *getFileName() const { return fileName; }
 };
 
-} // namespace edge
+}  // namespace edge

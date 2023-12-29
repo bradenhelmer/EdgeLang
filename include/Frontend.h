@@ -12,6 +12,7 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <unordered_map>
 
 namespace edge {
 
@@ -27,33 +28,62 @@ static void handleSourceReadError(const char *msg, uint8_t errCode,
 
 // LEXICAL ANALYSIS
 // ~~~~~~~~~~~~~~~~
+enum TokenKind : unsigned short {
+#define TOKEN(X) X,
+#include <TokenDef.h>
+  NUM_TOKENS
+};
+
+static const std::unordered_map<const char *, TokenKind> keywords = {
+#define KEYWORD(X) {#X, keyword_##X},
+#include <TokenDef.h>
+};
+
+struct Token {
+  const char *start;
+  const char *end;
+  TokenKind kind;
+  Token() = default;
+  size_t getLength() const { return (end - start) + 1; }
+};
 
 class Lexer {
-private:
+ private:
   const char *fileName;
   size_t fileLength;
   const char *sourceCode;
+  const char *bufPtr;
 
-public:
+  static bool isWhitespace(char c) { return c == ' ' | c == '\t' | c == '\r'; }
+  static bool isIdentifierChar(char c) { return isalpha(c) || c == '_'; }
+
+ public:
   Lexer(const char *fileName)
       : fileName(fileName), sourceCode(mapSourceFile(fileName, fileLength)) {
-    std::printf("Lexer initialized with source code:\n%s", sourceCode);
+    std::puts("Initializing Lexer...");
+    bufPtr = sourceCode;
   }
+  bool lexToken(Token *out);
+  bool lexIdentifier(Token *out, const char *currPtr);
+  bool lexNumericLiteral(Token *out, const char *currPtr);
+  void lexAndPrintTokens();
 };
 
 // AST & PARSING
 // ~~~~~~~~~~~~~
 
 class Parser {
-private:
-  std::unique_ptr<Lexer> lexer;
+ private:
+  Token *currentToken;
+  Lexer *lexer;
 
-public:
-  Parser(std::unique_ptr<Lexer> lexer) : lexer(std::move(lexer)) {}
+ public:
+  Parser(Lexer *lexer) : lexer(lexer), currentToken(new Token()) {}
+  ~Parser() { delete currentToken; }
 };
 
 // SEMANTIC ANALYSIS
 // ~~~~~~~~~~~~~~~~~
 
-} // namespace edge
-#endif // EDGELANG_FRONTEND_H
+}  // namespace edge
+#endif  // EDGELANG_FRONTEND_H

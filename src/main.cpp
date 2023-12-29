@@ -2,9 +2,9 @@
 // ~~~~~~~~
 // Main entrypoint for compiler.
 
-#include <iostream>
-
 #include <Toolchain.h>
+
+#include <iostream>
 
 using namespace edge;
 
@@ -14,7 +14,9 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  std::unique_ptr<Toolchain> toolchain = std::make_unique<Toolchain>(argv[1]);
+  Toolchain *TC = new Toolchain(argv[1]);
+  TC->executeToolchain();
 
+  delete TC;
   return 0;
 }
