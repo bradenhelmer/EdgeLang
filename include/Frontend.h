@@ -40,10 +40,15 @@ static const std::unordered_map<const char *, TokenKind> keywords = {
 #include <TokenDef.h>
 };
 
+static const std::unordered_map<TokenKind, const char *> tokenNames = {
+#define TOKEN(X) {X, #X},
+#include <TokenDef.h>
+};
+
 struct Token {
   const char *start;
   const char *end;
-  const char *tokenStr;
+  const char *tokenStr = nullptr;
   TokenKind kind;
   Token() = default;
   size_t getLength() const { return (end - start) + 1; }
@@ -56,8 +61,13 @@ class Lexer {
   const char *sourceCode;
   const char *bufPtr;
 
-  static bool isWhitespace(char c) { return c == ' ' | c == '\t' | c == '\r'; }
-  static bool isIdentifierChar(char c) { return isalpha(c) || c == '_'; }
+  static inline bool isWhitespace(char c) {
+    return c == ' ' | c == '\t' | c == '\r';
+  }
+  static inline bool isIdentifierChar(char c) { return isalpha(c) || c == '_'; }
+  bool lexIdentifier(Token *out, const char *currPtr);
+  bool lexNumericLiteral(Token *out, const char *currPtr);
+  inline void resetBufPtr() { bufPtr = sourceCode; }
 
  public:
   Lexer(const char *fileName)
@@ -66,8 +76,6 @@ class Lexer {
     bufPtr = sourceCode;
   }
   bool lexToken(Token *out);
-  bool lexIdentifier(Token *out, const char *currPtr);
-  bool lexNumericLiteral(Token *out, const char *currPtr);
   void lexAndPrintTokens();
 };
 
@@ -110,6 +118,10 @@ class BinaryOpExpr : public Expr {
  public:
   BinaryOpExpr(ProgramAST *ast, Expr *LHS, TokenKind op, Expr *RHS)
       : Expr(ast), LHS(LHS), op(op), RHS(RHS) {}
+  ~BinaryOpExpr() {
+    delete LHS;
+    delete RHS;
+  }
 };
 
 class AssignExpr {
@@ -138,8 +150,11 @@ class Parser {
   Lexer *lexer;
 
  public:
-  Parser(Lexer *lexer) : lexer(lexer), currentToken(new Token()) {}
+  Parser(Lexer *lexer) : lexer(lexer), currentToken(new Token()) {
+    lexer->lexToken(currentToken);
+  }
   ~Parser() { delete currentToken; }
+  bool parseProgram(ProgramAST *out);
 };
 
 // SEMANTIC ANALYSIS

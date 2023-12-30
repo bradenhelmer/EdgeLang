@@ -97,7 +97,7 @@ bool Lexer::lexIdentifier(Token *out, const char *currPtr) {
   } while (isIdentifierChar(*currPtr));
   out->end = currPtr - 1;
 
-  std::memcpy(&(out->tokenStr), out->start, out->getLength());
+  std::memcpy(&out->tokenStr, out->start, out->getLength());
 
   if (MAP_FIND(keywords, out->tokenStr)) {
     out->kind = keywords.at(out->tokenStr);
@@ -118,11 +118,11 @@ bool Lexer::lexNumericLiteral(Token *out, const char *currPtr) {
 }
 
 void Lexer::lexAndPrintTokens() {
+  resetBufPtr();
   Token tok;
   while (lexToken(&tok) && tok.kind != EDGEEOF) {
-    std::cout.write(tok.start, tok.getLength());
-    std::printf("\n");
+    std::printf("%s\n", tokenNames.at(tok.kind));
   }
-  bufPtr = sourceCode;
+  resetBufPtr();
 }
 }  // namespace edge

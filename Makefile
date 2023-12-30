@@ -3,6 +3,7 @@ CXXFLAGS += -Iinclude -g
 CXXFLAGS += -stdlib=libstdc++ -std=c++17
 
 DBG = gdb
+VAL = valgrind
 
 SRC_DIR = src
 INCLUDE_DIR = include
@@ -19,6 +20,7 @@ TEST_FILE = test_file.edge
 all: dirs $(OBJS) edge
 
 RUN_ARGS = $(EXE) $(TEST_FILE)
+VALGRIND_ARGS = --leak-check=full
 
 run:
 	$(RUN_ARGS)
@@ -29,7 +31,7 @@ crun: edge
 edge: $(OBJ)
 	$(CXX) $(OBJ) $(CXXFLAGS) -o $(EXE)
 
-$(OBJS_DIR)/%.o: $(SRC_DIR)/%.cpp
+$(OBJS_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 dirs:
@@ -45,3 +47,6 @@ DBG_ARGS = -q --args $(RUN_ARGS)
 
 dbg: edge
 	$(DBG) $(DBG_ARGS)
+
+leak_check: edge
+	sudo $(VAL) $(VALGRIND_ARGS) $(RUN_ARGS)
