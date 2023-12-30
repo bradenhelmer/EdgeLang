@@ -13,6 +13,7 @@
 #include <iostream>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 
 namespace edge {
 
@@ -72,6 +73,64 @@ class Lexer {
 
 // AST & PARSING
 // ~~~~~~~~~~~~~
+
+class ProgramAST;
+
+class Expr {
+ private:
+  ProgramAST *ast;
+
+ public:
+  Expr(ProgramAST *ast) : ast(ast) {}
+};
+
+class IntegerLiteralExpr : public Expr {
+ private:
+  int value;
+
+ public:
+  IntegerLiteralExpr(ProgramAST *ast, int value) : Expr(ast), value(value) {}
+};
+
+class AssingeeReferenceExpr : public Expr {
+ private:
+  const char *assignee;
+
+ public:
+  AssingeeReferenceExpr(ProgramAST *ast, const char *assingee)
+      : Expr(ast), assignee(assingee) {}
+};
+
+class BinaryOpExpr : public Expr {
+ private:
+  Expr *LHS;
+  TokenKind op;
+  Expr *RHS;
+
+ public:
+  BinaryOpExpr(ProgramAST *ast, Expr *LHS, TokenKind op, Expr *RHS)
+      : Expr(ast), LHS(LHS), op(op), RHS(RHS) {}
+};
+
+class AssignExpr {
+ private:
+  const char *assignee;
+  Expr *expr;
+
+ public:
+  AssignExpr(const char *assignee, Expr *expr)
+      : assignee(assignee), expr(expr) {}
+  ~AssignExpr() { delete expr; }
+};
+
+class ProgramAST {
+ private:
+  std::vector<AssignExpr> expr_list;
+
+ public:
+  ProgramAST() = default;
+  ~ProgramAST() = default;
+};
 
 class Parser {
  private:
