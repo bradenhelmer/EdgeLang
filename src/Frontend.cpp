@@ -8,6 +8,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
+#include <cstring>
+
 namespace edge {
 
 // Fast file read with mmap
@@ -32,6 +35,8 @@ const char *mapSourceFile(const char *fileName, size_t &length) {
   }
   return addr;
 }
+
+// LEXER IMPLEMENTATIONS
 
 bool Lexer::lexToken(Token *out) {
   const char *currPtr = bufPtr;
@@ -82,6 +87,12 @@ bool Lexer::lexToken(Token *out) {
     case '/':
       out->kind = DIV;
       break;
+    case '(':
+      out->kind = RPAREN;
+      break;
+    case ')':
+      out->kind = RPAREN;
+      break;
     default:
       return false;
   }
@@ -97,10 +108,10 @@ bool Lexer::lexIdentifier(Token *out, const char *currPtr) {
   } while (isIdentifierChar(*currPtr));
   out->end = currPtr - 1;
 
-  std::memcpy(&out->tokenStr, out->start, out->getLength());
+  out->tokenStr = std::string(out->start, out->getLength());
 
-  if (MAP_FIND(keywords, out->tokenStr)) {
-    out->kind = keywords.at(out->tokenStr);
+  if (keywords.find(out->tokenStr.c_str()) != keywords.end()) {
+    out->kind = keywords.at(out->tokenStr.c_str());
   }
 
   bufPtr = currPtr;
@@ -112,6 +123,9 @@ bool Lexer::lexNumericLiteral(Token *out, const char *currPtr) {
   do {
     currPtr++;
   } while (isdigit(*currPtr));
+
+  out->tokenStr = std::string(out->start, out->getLength());
+
   out->end = currPtr - 1;
   bufPtr = currPtr;
   return true;
@@ -124,5 +138,96 @@ void Lexer::lexAndPrintTokens() {
     std::printf("%s\n", tokenNames.at(tok.kind));
   }
   resetBufPtr();
+}
+
+// PARSER IMPLEMENTATIONS
+ProgramAST::~ProgramAST() { delete output; }
+
+bool Parser::parseProgram(ProgramAST *out) {
+  if (currentToken->kind != ID) {
+    return parsingError("Program must start with an identifier!");
+  }
+
+  while (!match(keyword_output) && match(ID)) {
+    std::string assignee = currentToken->tokenStr;
+    advance();
+
+    if (!match(ASSIGN)) {
+      return parsingError(
+          "Identifier must be followed by an assignment operator: '='");
+    }
+    advance();
+
+    Expr *expr = parseExpr(out);
+    if (!expr) {
+      return parsingError("Error parsing expression!");
+    }
+    out->attachAssignExpr(std::move(new AssignExpr(out, assignee, expr)));
+  }
+
+  if (!match(keyword_output)) {
+    return parsingError("Expected output statement!");
+  }
+
+  advance();
+  Expr *outputExpr = parseExpr(out);
+  out->attachOutputStmt(std::move(new OutputStmt(out, outputExpr)));
+
+  return true;
+}
+
+Expr *Parser::parseExpr(ProgramAST *out) {
+  Expr *LHS;
+  switch (currentToken->kind) {
+    case INTEGER:
+      LHS = new IntegerLiteralExpr(
+          out,
+          (int64_t)std::strtol(currentToken->tokenStr.c_str(),
+                               const_cast<char **>(&currentToken->end), 10));
+      break;
+    case ID:
+      LHS = new AssigneeReferenceExpr(out, currentToken->tokenStr);
+      break;
+    default: {
+      delete LHS;
+      return nullptr;
+    }
+  }
+
+  advance();
+
+  // This could be the end of a paren expr as well, if so just return.
+  if (match(NEWLINE)) {
+    advance();
+    return LHS;
+  } else if (isOperator(currentToken->kind)) {
+    return parseBinaryOpExpr(out, std::move(LHS), base);
+  } else {
+    delete LHS;
+    return nullptr;
+  }
+}
+
+Expr *Parser::parseBinaryOpExpr(ProgramAST *out, Expr *LHS, Precedence prec) {
+  Precedence currPrec = getOperatorPrecedence(currentToken->kind);
+  while (true) {
+    if (currPrec < prec) return LHS;
+
+    TokenKind op = currentToken->kind;
+    advance();
+
+    Expr *RHS;
+    RHS = parseExpr(out);
+
+    if (!RHS) return nullptr;
+    Precedence prevPrec = currPrec;
+    currPrec = getOperatorPrecedence(currentToken->kind);
+
+    if (currPrec < prevPrec) {
+      RHS = parseBinaryOpExpr(out, std::move(RHS), prevPrec);
+      if (!RHS) return nullptr;
+    }
+    LHS = new BinaryOpExpr(out, std::move(LHS), op, std::move(RHS));
+  }
 }
 }  // namespace edge
