@@ -1,6 +1,6 @@
 CXX = clang++
 CXXFLAGS += -Iinclude -g
-CXXFLAGS += -stdlib=libstdc++ -std=c++17
+CXXFLAGS += -stdlib=libstdc++ -std=c++17 -fsanitize=address
 
 DBG = gdb
 VAL = valgrind
@@ -20,7 +20,7 @@ TEST_FILE = test_file.edge
 all: dirs $(OBJS) edge
 
 RUN_ARGS = $(EXE) $(TEST_FILE)
-VALGRIND_ARGS = --leak-check=full
+VALGRIND_ARGS = --leak-check=full --show-leak-kinds=all
 
 run:
 	$(RUN_ARGS)
@@ -29,7 +29,7 @@ crun: edge
 	$(RUN_ARGS)
 
 edge: $(OBJ)
-	$(CXX) $(OBJ) $(CXXFLAGS) -o $(EXE)
+	$(CXX) $(OBJ) $(CXXFLAGS) -o $(EXE) $(LDFLAGS)
 
 $(OBJS_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -o $@ -c $<

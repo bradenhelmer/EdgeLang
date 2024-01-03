@@ -9,7 +9,7 @@ namespace edge {
 void Toolchain::executeToolchain() {
   ProgramAST *AST = new ProgramAST();
   bool parse = parser->parseProgram(AST);
-  std::cout << parse << std::endl;
+  delete AST;
 }
 
 }  // namespace edge

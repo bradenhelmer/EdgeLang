@@ -100,6 +100,7 @@ class Expr {
 
  public:
   Expr(ProgramAST *ast) : ast(ast) {}
+  virtual ~Expr() = default;
 };
 
 class IntegerLiteralExpr : public Expr {
@@ -109,6 +110,7 @@ class IntegerLiteralExpr : public Expr {
  public:
   IntegerLiteralExpr(ProgramAST *ast, int64_t value)
       : Expr(ast), value(value) {}
+  int64_t getValue() const { return value; }
 };
 
 class AssigneeReferenceExpr : public Expr {
@@ -129,10 +131,7 @@ class BinaryOpExpr : public Expr {
  public:
   BinaryOpExpr(ProgramAST *ast, Expr *LHS, TokenKind op, Expr *RHS)
       : Expr(ast), LHS(std::move(LHS)), op(op), RHS(std::move(RHS)) {}
-  ~BinaryOpExpr() {
-    delete LHS;
-    delete RHS;
-  }
+  ~BinaryOpExpr() override { delete LHS; }
 };
 
 class AssignExpr {
@@ -167,9 +166,9 @@ class ProgramAST {
   ProgramAST() = default;
   ~ProgramAST();
   void attachAssignExpr(AssignExpr *assignExpr) {
-    exprList.push_back(assignExpr);
+    exprList.push_back(std::move(assignExpr));
   }
-  void attachOutputStmt(OutputStmt *stmt) { output = stmt; }
+  void attachOutputStmt(OutputStmt *stmt) { output = std::move(stmt); }
 };
 
 enum Precedence : uint8_t {

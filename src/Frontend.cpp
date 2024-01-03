@@ -140,12 +140,17 @@ void Lexer::lexAndPrintTokens() {
   resetBufPtr();
 }
 
-// PARSER IMPLEMENTATIONS
-ProgramAST::~ProgramAST() { delete output; }
+// PARSER/AST IMPLEMENTATIONS
+ProgramAST::~ProgramAST() {
+  std::for_each(exprList.begin(), exprList.end(),
+                [](const AssignExpr *AE) { delete AE; });
+  delete output;
+}
 
 bool Parser::parseProgram(ProgramAST *out) {
-  if (currentToken->kind != ID) {
-    return parsingError("Program must start with an identifier!");
+  if (!match(ID) && !match(keyword_output)) {
+    return parsingError(
+        "Program must start with an identifier or output statment!");
   }
 
   while (!match(keyword_output) && match(ID)) {
@@ -162,7 +167,7 @@ bool Parser::parseProgram(ProgramAST *out) {
     if (!expr) {
       return parsingError("Error parsing expression!");
     }
-    out->attachAssignExpr(std::move(new AssignExpr(out, assignee, expr)));
+    out->attachAssignExpr(new AssignExpr(out, assignee, expr));
   }
 
   if (!match(keyword_output)) {
@@ -171,7 +176,7 @@ bool Parser::parseProgram(ProgramAST *out) {
 
   advance();
   Expr *outputExpr = parseExpr(out);
-  out->attachOutputStmt(std::move(new OutputStmt(out, outputExpr)));
+  out->attachOutputStmt(new OutputStmt(out, outputExpr));
 
   return true;
 }
@@ -189,19 +194,17 @@ Expr *Parser::parseExpr(ProgramAST *out) {
       LHS = new AssigneeReferenceExpr(out, currentToken->tokenStr);
       break;
     default: {
-      delete LHS;
       return nullptr;
     }
   }
 
   advance();
 
-  // This could be the end of a paren expr as well, if so just return.
   if (match(NEWLINE)) {
     advance();
     return LHS;
   } else if (isOperator(currentToken->kind)) {
-    return parseBinaryOpExpr(out, std::move(LHS), base);
+    return parseBinaryOpExpr(out, LHS, base);
   } else {
     delete LHS;
     return nullptr;
@@ -224,10 +227,11 @@ Expr *Parser::parseBinaryOpExpr(ProgramAST *out, Expr *LHS, Precedence prec) {
     currPrec = getOperatorPrecedence(currentToken->kind);
 
     if (currPrec < prevPrec) {
-      RHS = parseBinaryOpExpr(out, std::move(RHS), prevPrec);
+      RHS = parseBinaryOpExpr(out, RHS, prevPrec);
       if (!RHS) return nullptr;
     }
-    LHS = new BinaryOpExpr(out, std::move(LHS), op, std::move(RHS));
+    LHS = new BinaryOpExpr(out, LHS, op, RHS);
+    delete RHS;
   }
 }
 }  // namespace edge
