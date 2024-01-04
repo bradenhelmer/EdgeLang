@@ -12,6 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS
     "${CMAKE_CXX_FLAGS} -g -stdlib=libstdc++ -fsantize"
     CACHE STRING "C++ Compiler Flags")
+include_directories(${PROJECT_SOURCE_DIR}/include)
 
 # bin aliases
 set(EXE ${CMAKE_BINARY_DIR}/edge)
@@ -34,9 +35,10 @@ list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 include(AddMLIR)
 include_directories(${MLIR_INCLUDE_DIRS})
 include_directories(${LLVM_INCLUDE_DIRS})
-include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_BINARY_DIR}/include)
 target_include_directories(edgelib PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 
 # Compiler binary
 add_executable(edge $<TARGET_OBJECTS:edgelib>)

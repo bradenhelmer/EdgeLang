@@ -6,14 +6,12 @@
 
 include "mlir/IR/DialectBase.td"
 include "mlir/IR/OpBase.td"
-include "mlir/IR/FunctionInterfaces.td"
-include "mlir/IR/SymbolInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 def Edge_Dialect : Dialect {
     let name = "edge";
     let summary = "A simple dialect for arithmetic operations.";
-    let cppNamespace = "::edge";
+    let cppNamespace = "::mlir::edge";
 }
 
 class EdgeOp<string mnemonic, list<Trait> traits = []> :
@@ -31,13 +29,13 @@ def ConstantOp : EdgeOp<"constant", [Pure]> {
     let results = (outs I64);
 
     let builders = [
-        OpBuilder<(ins "I64":$value)>
+        OpBuilder<(ins "Value":$value)>
     ];
 }
 
 def AddOp : EdgeOp<"add"> {
     
-    let summary = "I64 addition";
+    let summary = "i64 addition";
     let description = [{
         This performs basic arithmetic addition between 2 64-bit
         integers.
@@ -52,7 +50,7 @@ def AddOp : EdgeOp<"add"> {
 
 def SubOp : EdgeOp<"sub"> {
     
-    let summary = "I64 subtraction";
+    let summary = "i64 subtraction";
     let description = [{
         This performs basic arithmetic subtraciton between 2 64-bit
         integers.
@@ -67,7 +65,7 @@ def SubOp : EdgeOp<"sub"> {
 
 def MulOp : EdgeOp<"mul"> {
     
-    let summary = "I64 multiplication";
+    let summary = "i64 multiplication";
     let description = [{
         This performs basic arithmetic multiplication between 2 64-bit
         integers.
@@ -82,7 +80,7 @@ def MulOp : EdgeOp<"mul"> {
 
 def DivOp : EdgeOp<"div"> {
 
-    let summary = "I64 division";
+    let summary = "i64 division";
     let description = [{
         This performs basic arithmetic division between 2 64-bit
         integers.

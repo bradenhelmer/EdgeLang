@@ -1,6 +1,7 @@
 add_mlir_dialect_library(
   EdgeIR
   EdgeDialect.cpp
+  EdgeOps.cpp
   DEPENDS
   EdgeTableGen
   LINK_LIBS
