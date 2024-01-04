@@ -1,7 +1,7 @@
 // Toolchain.h
 // ~~~~~~~~~~~
 // Gathers compiler modules and executes them in order.
-#include <Frontend.h>
+#include <Edge/Frontend.h>
 
 namespace edge {
 

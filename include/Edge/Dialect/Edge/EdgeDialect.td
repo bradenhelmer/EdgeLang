@@ -1,0 +1,100 @@
+// EdgeDialect.td
+// ~~~~~~~~~~~~~~
+// Edge Dialect definition
+#ifndef EDGE_DIALECT_TD
+#define EDGE_DIALECT_TD
+
+include "mlir/IR/DialectBase.td"
+include "mlir/IR/OpBase.td"
+include "mlir/IR/FunctionInterfaces.td"
+include "mlir/IR/SymbolInterfaces.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
+
+def Edge_Dialect : Dialect {
+    let name = "edge";
+    let summary = "A simple dialect for arithmetic operations.";
+    let cppNamespace = "::edge";
+}
+
+class EdgeOp<string mnemonic, list<Trait> traits = []> :
+    Op<Edge_Dialect, mnemonic, traits>;
+
+
+def ConstantOp : EdgeOp<"constant", [Pure]> {
+
+    let summary = "constant";
+    let description = [{
+        Literal to SSA Value
+    }];
+
+    let arguments = (ins I64:$value);
+    let results = (outs I64);
+
+    let builders = [
+        OpBuilder<(ins "I64":$value)>
+    ];
+}
+
+def AddOp : EdgeOp<"add"> {
+    
+    let summary = "I64 addition";
+    let description = [{
+        This performs basic arithmetic addition between 2 64-bit
+        integers.
+    }];
+    let arguments = (ins I64:$lhs, I64:$rhs);
+    let results = (outs I64);
+
+    let builders = [
+        OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+    ];
+}
+
+def SubOp : EdgeOp<"sub"> {
+    
+    let summary = "I64 subtraction";
+    let description = [{
+        This performs basic arithmetic subtraciton between 2 64-bit
+        integers.
+    }];
+    let arguments = (ins I64:$lhs, I64:$rhs);
+    let results = (outs I64);
+
+    let builders = [
+        OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+    ];
+}
+
+def MulOp : EdgeOp<"mul"> {
+    
+    let summary = "I64 multiplication";
+    let description = [{
+        This performs basic arithmetic multiplication between 2 64-bit
+        integers.
+    }];
+    let arguments = (ins I64:$lhs, I64:$rhs);
+    let results = (outs I64);
+
+    let builders = [
+        OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+    ];
+}
+
+def DivOp : EdgeOp<"div"> {
+
+    let summary = "I64 division";
+    let description = [{
+        This performs basic arithmetic division between 2 64-bit
+        integers.
+    }];
+    let arguments = (ins I64:$lhs, I64:$rhs);
+    let results = (outs I64);
+
+    let builders = [
+        OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+    ];
+}
+
+def AssignOp : EdgeOp<"assign"> {}
+def OutputOp : EdgeOp<"output"> {}
+#endif // EDGE_DIALECT_TD

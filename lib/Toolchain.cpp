@@ -1,8 +1,8 @@
 // Toolchain.cpp
 // ~~~~~~~~~~~~~
 // Toolchain implementation
-#include <Frontend.h>
-#include <Toolchain.h>
+#include <Edge/Frontend.h>
+#include <Edge/Toolchain.h>
 
 namespace edge {
 

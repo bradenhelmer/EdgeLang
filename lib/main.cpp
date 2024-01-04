@@ -2,7 +2,7 @@
 // ~~~~~~~~
 // Main entrypoint for compiler.
 
-#include <Toolchain.h>
+#include <Edge/Toolchain.h>
 
 #include <iostream>
 

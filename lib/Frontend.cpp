@@ -1,8 +1,8 @@
 // Frontend.cpp
 // ~~~~~~~~~~~~
 // Implementations of frontend module
-#include <Common.h>
-#include <Frontend.h>
+#include <Edge/Common.h>
+#include <Edge/Frontend.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
