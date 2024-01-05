@@ -10,4 +10,4 @@
 #define GET_OP_CLASSES
 #include <Edge/Dialect/Edge/EdgeOps.h.inc>
 
-#endif
+#endif  // EDGE_DIALECT_EDGE_DIALECT__H

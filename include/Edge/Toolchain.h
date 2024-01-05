@@ -1,6 +1,9 @@
 // Toolchain.h
 // ~~~~~~~~~~~
 // Gathers compiler modules and executes them in order.
+#ifndef EDGE_TOOLCHAIN_H
+#define EDGE_TOOLCHAIN_H
+
 #include <Edge/Frontend.h>
 
 namespace edge {
@@ -31,3 +34,4 @@ class Toolchain {
 };
 
 }  // namespace edge
+#endif  // EDGE_TOOLCHAIN_H

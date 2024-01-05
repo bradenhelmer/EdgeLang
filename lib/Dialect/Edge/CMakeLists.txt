@@ -6,4 +6,9 @@ add_mlir_dialect_library(
   EdgeTableGen
   LINK_LIBS
   PUBLIC
-  MLIRIR)
+  MLIRIR
+  MLIRArithDialect
+  ADDITIONAL_HEADERS
+  ${PROJECT_SOURCE_DIR}/include
+  ${PROJECT_BINARY_DIR}/include
+)
