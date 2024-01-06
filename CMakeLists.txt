@@ -6,8 +6,8 @@ set(CMAKE_CXX_COMPILER clang++)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_INCLUDE_CURRENT_DIR)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON
-                                  "${PROJECT_BINARY_DIR}/compile_comands.json")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+                       
 
 set(CMAKE_CXX_FLAGS
     "${CMAKE_CXX_FLAGS} -g -stdlib=libstdc++ -fsantize"
@@ -40,11 +40,13 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_BINARY_DIR}/include)
 
 add_library(edgelib OBJECT ${SOURCES})
-set(EDGE_LIBS edgelib EdgeIR)
+set(EDGE_LIBS EdgeIR edgelib )
 
 # Compiler binary
 add_executable(edge $<TARGET_OBJECTS:edgelib>)
 target_link_libraries(edge ${EDGE_LIBS})
+# Must compile and TableGen files before building edgelib
+add_dependencies(edgelib EdgeIR)
 
 # Targets
 add_custom_target(run COMMAND ${EXE} ${CMAKE_SOURCE_DIR}/test_file.edge)

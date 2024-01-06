@@ -29,7 +29,7 @@ def ConstantOp : EdgeOp<"constant", [Pure]> {
     let results = (outs I64);
 
     let builders = [
-        OpBuilder<(ins "Value":$value)>
+        OpBuilder<(ins "int64_t":$value)>
     ];
 }
 
@@ -93,6 +93,7 @@ def DivOp : EdgeOp<"div"> {
     ];
 }
 
+def AssignRefOp : EdgeOp<"assign_ref"> {}
 def AssignOp : EdgeOp<"assign"> {}
 def OutputOp : EdgeOp<"output"> {}
 #endif // EDGE_DIALECT_TD

@@ -2,8 +2,13 @@
 // ~~~~~~~~~~~~~~~
 // Implementation of the Edge dialect
 #include <Edge/Dialect/Edge/EdgeDialect.h>
+#include <mlir/IR/Builders.h>
+#include <mlir/IR/BuiltinTypes.h>
 
-namespace mlir::edge {
+#include <Edge/Dialect/Edge/EdgeDialect.cpp.inc>
+
+using namespace mlir;
+using namespace mlir::edge;
 
 void EdgeDialect::initialize() {
   addOperations<
@@ -11,4 +16,13 @@ void EdgeDialect::initialize() {
 #include <Edge/Dialect/Edge/EdgeOps.cpp.inc>
       >();
 }
-}  // namespace mlir::edge
+
+void ConstantOp::build(::mlir::OpBuilder &odsBuilder,
+                       ::mlir::OperationState &odsState, int64_t value) {
+  IntegerType int64Ty = odsBuilder.getI64Type();
+  Value val = odsBuilder.create<ConstantOp>(odsState.location, value);
+  ConstantOp::build(odsBuilder, odsState, int64Ty, val);
+}
+
+#define GET_OP_CLASSES
+#include <Edge/Dialect/Edge/EdgeOps.cpp.inc>

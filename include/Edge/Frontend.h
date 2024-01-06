@@ -169,6 +169,7 @@ class ProgramAST {
     exprList.push_back(std::move(assignExpr));
   }
   void attachOutputStmt(OutputStmt *stmt) { output = std::move(stmt); }
+  std::vector<AssignExpr *> &getAssignExprs() { return exprList; }
 };
 
 enum Precedence : uint8_t {

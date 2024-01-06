@@ -2,13 +2,26 @@
 // ~~~~~~~~~~~
 // Definitions for the middle end of the compiler:
 // 1. Edge Dialect
-#include <mlir/IR/Dialect.h>
+#ifndef EDGE_MIDDLEEND_H
+#define EDGE_MIDDLEEND_H
+#include <Edge/Dialect/Edge/EdgeDialect.h>
+#include <Edge/Frontend.h>
+#include <mlir/IR/Builders.h>
+#include <mlir/IR/BuiltinOps.h>
 
-class EdgeDialect : public mlir::Dialect {
+namespace edge {
+
+class MLIRGenerator {
+ private:
+  mlir::OpBuilder builder;
+  mlir::ModuleOp theModule;
+
+  mlir::edge::AssignOp genAssignOp(AssignExpr &assignExpr);
+
  public:
-  explicit EdgeDialect(mlir::MLIRContext *ctx);
+  MLIRGenerator(mlir::MLIRContext &context) : builder(&context) {}
 
-  static llvm::StringRef getDialectNamespace() { return "edge"; }
-
-  void initialize();
+  mlir::ModuleOp genModuleOp(ProgramAST &ast);
 };
+}  // namespace edge
+#endif  // EDGE_MIDDLEEND_H
