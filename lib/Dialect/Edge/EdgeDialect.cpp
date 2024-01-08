@@ -17,12 +17,12 @@ void EdgeDialect::initialize() {
       >();
 }
 
-/* void ConstantOp::build(::mlir::OpBuilder &odsBuilder, */
-/*                        ::mlir::OperationState &odsState, int64_t value) { */
-/*   IntegerType int64Ty = odsBuilder.getI64Type(); */
-/*   Value val = odsBuilder.create<ConstantOp>(odsState.location, value); */
-
-/* } */
+void ConstantOp::build(::mlir::OpBuilder &odsBuilder,
+                       ::mlir::OperationState &odsState, int64_t value) {
+  auto dataType = IntegerType::get(odsBuilder.getContext(), 64);
+  auto attr = IntegerAttr::get(dataType, value);
+  ConstantOp::build(odsBuilder, odsState, dataType, attr);
+}
 
 #define GET_OP_CLASSES
 #include <Edge/Dialect/Edge/EdgeOps.cpp.inc>

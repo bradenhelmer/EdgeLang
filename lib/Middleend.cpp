@@ -8,11 +8,15 @@ namespace edge {
 
 mlir::ModuleOp MLIRGenerator::genModuleOp(ProgramAST &ast) {
   theModule = mlir::ModuleOp::create(builder.getUnknownLoc());
+  builder.setInsertionPointToStart(theModule.getBody());
 
-  mlir::Location nullLoc = mlir::FileLineColLoc::get(
-      mlir::StringAttr::get("NULL", builder.getI8Type()), 1, 1);
+  /* mlir::Location nullLoc = mlir::FileLineColLoc::get( */
+  /*     mlir::StringAttr::get("NULL", builder.getI8Type()), 1, 1); */
 
-  /* builder.create<mlir::edge::ConstantOp>(nullLoc, 64); */
+  auto dataType = mlir::IntegerType::get(builder.getContext(), 64);
+  auto attr = mlir::IntegerAttr::get(dataType, 100);
+
+  builder.create<ConstantOp>(builder.getUnknownLoc(), dataType, attr);
   return theModule;
 }
 

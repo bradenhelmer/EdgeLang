@@ -5,6 +5,7 @@
 #include <Edge/Frontend.h>
 #include <Edge/Middleend.h>
 #include <Edge/Toolchain.h>
+#include <llvm/Support/raw_ostream.h>
 #include <mlir/IR/MLIRContext.h>
 
 using namespace edge;
@@ -16,7 +17,7 @@ void Toolchain::executeToolchain() {
   bool parse = parser->parseProgram(AST);
 
   mlir::MLIRContext context;
-  context.getOrLoadDialect<EdgeDialect>();
+  context.loadDialect<EdgeDialect>();
 
   MLIRGenerator generator(context);
   mlir::OwningOpRef<mlir::ModuleOp> module = generator.genModuleOp(*AST);

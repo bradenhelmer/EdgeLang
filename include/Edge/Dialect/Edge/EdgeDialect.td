@@ -18,14 +18,23 @@ class EdgeOp<string mnemonic, list<Trait> traits = []> :
     Op<Edge_Dialect, mnemonic, traits>;
 
 
-def ConstantOp : EdgeOp<"constant", [Pure]> {
+def ConstantOp : EdgeOp<"constant", [Pure, ConstantLike]> {
     let summary = "constant";
     let description = [{
-        Literal to SSA mlir::Value
+        Represent a constant, signed 64-bit integer.
     }];
 
-    let arguments = (ins I64:$value);
-    let results = (outs I64);
+    let arguments = (ins SI64Attr:$value);
+    let results = (outs SI64);
+
+  	let builders = [
+  		OpBuilder<(ins "mlir::IntegerAttr":$value), [{
+  	    build($_builder, $_state, value.getType(), value);
+  	}]>,
+
+  		OpBuilder<(ins "int64_t":$value)>
+  	];
+
 }
 
 def AddOp : EdgeOp<"add"> {
@@ -35,8 +44,8 @@ def AddOp : EdgeOp<"add"> {
         This performs basic arithmetic addition between 2 64-bit
         integers.
     }];
-    let arguments = (ins I64:$lhs, I64:$rhs);
-    let results = (outs I64);
+    let arguments = (ins SI64:$lhs, SI64:$rhs);
+    let results = (outs SI64);
 
     let builders = [
         OpBuilder<(ins "mlir::Value":$lhs, "mlir::Value":$rhs)>
@@ -50,8 +59,8 @@ def SubOp : EdgeOp<"sub"> {
         This performs basic arithmetic subtraciton between 2 64-bit
         integers.
     }];
-    let arguments = (ins I64:$lhs, I64:$rhs);
-    let results = (outs I64);
+    let arguments = (ins SI64:$lhs, SI64:$rhs);
+    let results = (outs SI64);
 
     let builders = [
         OpBuilder<(ins "mlir::Value":$lhs, "mlir::Value":$rhs)>
@@ -65,8 +74,8 @@ def MulOp : EdgeOp<"mul"> {
         This performs basic arithmetic multiplication between 2 64-bit
         integers.
     }];
-    let arguments = (ins I64:$lhs, I64:$rhs);
-    let results = (outs I64);
+    let arguments = (ins SI64:$lhs, SI64:$rhs);
+    let results = (outs SI64);
 
     let builders = [
         OpBuilder<(ins "mlir::Value":$lhs, "mlir::Value":$rhs)>
@@ -80,8 +89,8 @@ def DivOp : EdgeOp<"div"> {
         This performs basic arithmetic division between 2 64-bit
         integers.
     }];
-    let arguments = (ins I64:$lhs, I64:$rhs);
-    let results = (outs I64);
+    let arguments = (ins SI64:$lhs, SI64:$rhs);
+    let results = (outs SI64);
 
     let builders = [
         OpBuilder<(ins "mlir::Value":$lhs, "mlir::Value":$rhs)>
