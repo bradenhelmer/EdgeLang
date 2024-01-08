@@ -7,7 +7,6 @@
 #include <Edge/Dialect/Edge/EdgeDialect.h>
 #include <Edge/Frontend.h>
 #include <mlir/IR/Builders.h>
-#include <mlir/IR/BuiltinOps.h>
 
 namespace edge {
 
@@ -16,7 +15,7 @@ class MLIRGenerator {
   mlir::OpBuilder builder;
   mlir::ModuleOp theModule;
 
-  mlir::edge::AssignOp genAssignOp(AssignExpr &assignExpr);
+  edge::AssignOp genAssignOp(AssignExpr &assignExpr);
 
  public:
   MLIRGenerator(mlir::MLIRContext &context) : builder(&context) {}

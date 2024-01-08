@@ -5,13 +5,13 @@
 #define EDGE_DIALECT_TD
 
 include "mlir/IR/DialectBase.td"
-include "mlir/IR/OpBase.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/IR/OpBase.td"
 
 def Edge_Dialect : Dialect {
     let name = "edge";
     let summary = "A simple dialect for arithmetic operations.";
-    let cppNamespace = "::mlir::edge";
+    let cppNamespace = "::edge";
 }
 
 class EdgeOp<string mnemonic, list<Trait> traits = []> :
@@ -19,18 +19,13 @@ class EdgeOp<string mnemonic, list<Trait> traits = []> :
 
 
 def ConstantOp : EdgeOp<"constant", [Pure]> {
-
     let summary = "constant";
     let description = [{
-        Literal to SSA Value
+        Literal to SSA mlir::Value
     }];
 
     let arguments = (ins I64:$value);
     let results = (outs I64);
-
-    let builders = [
-        OpBuilder<(ins "int64_t":$value)>
-    ];
 }
 
 def AddOp : EdgeOp<"add"> {
@@ -44,7 +39,7 @@ def AddOp : EdgeOp<"add"> {
     let results = (outs I64);
 
     let builders = [
-        OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+        OpBuilder<(ins "mlir::Value":$lhs, "mlir::Value":$rhs)>
     ];
 }
 
@@ -59,7 +54,7 @@ def SubOp : EdgeOp<"sub"> {
     let results = (outs I64);
 
     let builders = [
-        OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+        OpBuilder<(ins "mlir::Value":$lhs, "mlir::Value":$rhs)>
     ];
 }
 
@@ -74,7 +69,7 @@ def MulOp : EdgeOp<"mul"> {
     let results = (outs I64);
 
     let builders = [
-        OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+        OpBuilder<(ins "mlir::Value":$lhs, "mlir::Value":$rhs)>
     ];
 }
 
@@ -89,7 +84,7 @@ def DivOp : EdgeOp<"div"> {
     let results = (outs I64);
 
     let builders = [
-        OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+        OpBuilder<(ins "mlir::Value":$lhs, "mlir::Value":$rhs)>
     ];
 }
 
