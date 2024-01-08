@@ -35,6 +35,8 @@ def ConstantOp : EdgeOp<"constant", [Pure, ConstantLike]> {
   		OpBuilder<(ins "int64_t":$value)>
   	];
 
+	let hasVerifier = 1;
+
 }
 
 def AddOp : EdgeOp<"add"> {
