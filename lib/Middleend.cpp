@@ -12,6 +12,7 @@ mlir::ModuleOp MLIRGenerator::genModuleOp(ProgramAST &ast) {
   theModule = mlir::ModuleOp::create(builder.getUnknownLoc());
   llvm::ScopedHashTableScope<llvm::StringRef, mlir::Value> globalScope(
       symbolTable);
+  builder.setInsertionPointToStart(theModule.getBody());
 
   for (AssignStmt *AE : ast.getAssignExprs()) {
     genAssignOp(*AE);

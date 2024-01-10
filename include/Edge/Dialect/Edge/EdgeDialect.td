@@ -118,9 +118,10 @@ def AssignOp : EdgeOp<"assign"> {
 	}];
 	let arguments = (ins SymbolNameAttr:$symbol, SI64:$value);
 }
+
 def OutputOp : EdgeOp<"output"> {
 	let summary = "Output an expression or value";
 	let arguments = (ins SI64:$output_val);
-	
 }
+
 #endif // EDGE_DIALECT_TD
