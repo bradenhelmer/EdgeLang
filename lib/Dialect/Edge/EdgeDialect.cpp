@@ -7,8 +7,6 @@
 
 #include <Edge/Dialect/Edge/EdgeDialect.cpp.inc>
 
-#define CONSTANT_OP_WIDTH 64
-
 using namespace mlir;
 using namespace edge;
 
@@ -34,7 +32,7 @@ void EdgeDialect::initialize() {
 }
 
 // ConstantOp
-
+// ----------
 void ConstantOp::build(::mlir::OpBuilder &odsBuilder,
                        ::mlir::OperationState &odsState, int64_t value) {
   auto dataType = IntegerType::get(odsBuilder.getContext(), CONSTANT_OP_WIDTH);
@@ -57,6 +55,54 @@ LogicalResult ConstantOp::verify() {
            << type.getWidth() << " bit "
            << getSignedSemanticsString(type.getSignedness()) << " integer!";
   }
+}
+
+// AddOp
+// ~~~~~
+void AddOp::build(::mlir::OpBuilder &odsBuilder,
+                  ::mlir::OperationState &odsState, mlir::Value lhs,
+                  mlir::Value rhs) {
+  TypeRange valueTypes = {lhs.getType(), rhs.getType()};
+  odsState.addTypes(valueTypes);
+  odsState.addOperands({lhs, rhs});
+}
+
+// SubOp
+// ~~~~~
+void SubOp::build(::mlir::OpBuilder &odsBuilder,
+                  ::mlir::OperationState &odsState, mlir::Value lhs,
+                  mlir::Value rhs) {
+  TypeRange valueTypes = {lhs.getType(), rhs.getType()};
+  odsState.addTypes(valueTypes);
+  odsState.addOperands({lhs, rhs});
+}
+
+// MulOp
+// ~~~~~
+void MulOp::build(::mlir::OpBuilder &odsBuilder,
+                  ::mlir::OperationState &odsState, mlir::Value lhs,
+                  mlir::Value rhs) {
+  TypeRange valueTypes = {lhs.getType(), rhs.getType()};
+  odsState.addTypes(valueTypes);
+  odsState.addOperands({lhs, rhs});
+}
+
+// DivOp
+// ~~~~~
+void DivOp::build(::mlir::OpBuilder &odsBuilder,
+                  ::mlir::OperationState &odsState, mlir::Value lhs,
+                  mlir::Value rhs) {
+  TypeRange valueTypes = {lhs.getType(), rhs.getType()};
+  odsState.addTypes(valueTypes);
+  odsState.addOperands({lhs, rhs});
+}
+
+// RefOp
+void RefOp::build(::mlir::OpBuilder &odsBuilder,
+                  ::mlir::OperationState &odsState, llvm::StringRef symbol) {
+  SymbolRefAttr symbolRefAttr =
+      SymbolRefAttr::get(odsBuilder.getContext(), symbol);
+  RefOp::build(odsBuilder, odsState, odsBuilder.getI64Type(), symbolRefAttr);
 }
 
 #define GET_OP_CLASSES

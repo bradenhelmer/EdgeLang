@@ -40,7 +40,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_BINARY_DIR}/include)
 
 add_library(edgelib OBJECT ${SOURCES})
-set(EDGE_LIBS EdgeIR edgelib)
+set(EDGE_LIBS EdgeIR edgelib MLIRMemRefDialect)
 
 # Compiler binary
 add_executable(edge $<TARGET_OBJECTS:edgelib>)
@@ -52,7 +52,7 @@ add_dependencies(edgelib EdgeIR)
 add_custom_target(
   run
   COMMAND ${EXE} ${CMAKE_SOURCE_DIR}/test_file.edge
-  DEPENDS edgelib)
+  DEPENDS edge)
 add_custom_target(format COMMAND clang-format -i ${SOURCES} ${HEADERS})
 add_custom_target(dbg COMMAND ${DBG} -q --args ${EXE}
                               ${CMAKE_SOURCE_DIR}/test_file.edge)

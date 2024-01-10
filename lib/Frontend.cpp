@@ -108,10 +108,10 @@ bool Lexer::lexIdentifier(Token *out, const char *currPtr) {
   } while (isIdentifierChar(*currPtr));
   out->end = currPtr - 1;
 
-  out->tokenStr = std::string(out->start, out->getLength());
+  out->tokenStr = llvm::StringRef(out->start, out->getLength());
 
-  if (keywords.find(out->tokenStr.c_str()) != keywords.end()) {
-    out->kind = keywords.at(out->tokenStr.c_str());
+  if (keywords.find(out->tokenStr) != keywords.end()) {
+    out->kind = keywords.at(out->tokenStr);
   }
 
   bufPtr = currPtr;
@@ -124,7 +124,7 @@ bool Lexer::lexNumericLiteral(Token *out, const char *currPtr) {
     currPtr++;
   } while (isdigit(*currPtr));
 
-  out->tokenStr = std::string(out->start, out->getLength());
+  out->tokenStr = llvm::StringRef(out->start, out->getLength());
 
   out->end = currPtr - 1;
   bufPtr = currPtr;
@@ -143,7 +143,7 @@ void Lexer::lexAndPrintTokens() {
 // PARSER/AST IMPLEMENTATIONS
 ProgramAST::~ProgramAST() {
   std::for_each(exprList.begin(), exprList.end(),
-                [](const AssignExpr *AE) { delete AE; });
+                [](const AssignStmt *AE) { delete AE; });
   delete output;
 }
 
@@ -154,7 +154,7 @@ bool Parser::parseProgram(ProgramAST *out) {
   }
 
   while (!match(keyword_output) && match(ID)) {
-    std::string assignee = currentToken->tokenStr;
+    llvm::StringRef assignee = currentToken->tokenStr;
     advance();
 
     if (!match(ASSIGN)) {
@@ -167,7 +167,7 @@ bool Parser::parseProgram(ProgramAST *out) {
     if (!expr) {
       return parsingError("Error parsing expression!");
     }
-    out->attachAssignExpr(new AssignExpr(out, assignee, expr));
+    out->attachAssignExpr(new AssignStmt(out, assignee, expr));
   }
 
   if (!match(keyword_output)) {
@@ -185,10 +185,8 @@ Expr *Parser::parseExpr(ProgramAST *out) {
   Expr *LHS;
   switch (currentToken->kind) {
     case INTEGER:
-      LHS = new IntegerLiteralExpr(
-          out,
-          (int64_t)std::strtol(currentToken->tokenStr.c_str(),
-                               const_cast<char **>(&currentToken->end), 10));
+      LHS =
+          new IntegerLiteralExpr(out, std::stol(currentToken->tokenStr.str()));
       break;
     case ID:
       LHS = new AssigneeReferenceExpr(out, currentToken->tokenStr);

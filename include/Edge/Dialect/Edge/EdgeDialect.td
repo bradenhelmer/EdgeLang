@@ -6,6 +6,7 @@
 
 include "mlir/IR/DialectBase.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/IR/SymbolInterfaces.td"
 include "mlir/IR/OpBase.td"
 
 def Edge_Dialect : Dialect {
@@ -28,15 +29,11 @@ def ConstantOp : EdgeOp<"constant", [Pure, ConstantLike]> {
     let results = (outs SI64);
 
   	let builders = [
-  		OpBuilder<(ins "mlir::IntegerAttr":$value), [{
-  	    build($_builder, $_state, value.getType(), value);
-  	}]>,
-
-  		OpBuilder<(ins "int64_t":$value)>
+		OpBuilder<(ins "int64_t":$value)>
   	];
 
 	let hasVerifier = 1;
-
+	let assemblyFormat = "attr-dict";
 }
 
 def AddOp : EdgeOp<"add"> {
@@ -99,7 +96,31 @@ def DivOp : EdgeOp<"div"> {
     ];
 }
 
-def AssignRefOp : EdgeOp<"assign_ref"> {}
-def AssignOp : EdgeOp<"assign"> {}
-def OutputOp : EdgeOp<"output"> {}
+def RefOp : EdgeOp<"assign_ref"> {
+	let summary = "Reference to a symbol that has been assinged a value.";
+	let description = [{
+		Reference to a symbol that holds a value.	
+	}];
+	let arguments = (ins SymbolRefAttr:$symbol);
+	let results = (outs SI64);
+
+	let builders = [
+		OpBuilder<(ins "llvm::StringRef":$symbol)>
+	];
+}
+
+def AssignOp : EdgeOp<"assign"> {
+	let summary = "Operation to assign a value or expression to a symbol.";
+	let description = [{
+		Assign a value to a symbol e.g 
+		A = 3
+		B = A + 1
+	}];
+	let arguments = (ins SymbolNameAttr:$symbol, SI64:$value);
+}
+def OutputOp : EdgeOp<"output"> {
+	let summary = "Output an expression or value";
+	let arguments = (ins SI64:$output_val);
+	
+}
 #endif // EDGE_DIALECT_TD

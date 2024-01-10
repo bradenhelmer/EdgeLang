@@ -7,6 +7,8 @@
 // ~~~~~~~~~~~~~~~~~~~~
 #ifndef EDGELANG_FRONTEND_H
 #define EDGELANG_FRONTEND_H
+#include <llvm/ADT/StringRef.h>
+
 #include <cstring>
 #include <iostream>
 #include <map>
@@ -34,13 +36,7 @@ enum TokenKind : uint8_t {
   NUM_TOKENS
 };
 
-struct KeywordComparator {
-  bool operator()(const char *lhs, const char *rhs) const {
-    return std::strcmp(lhs, rhs) < 0;
-  }
-};
-
-static const std::map<const char *, TokenKind, KeywordComparator> keywords = {
+static const std::map<llvm::StringRef, TokenKind> keywords = {
 #define KEYWORD(X) {#X, keyword_##X},
 #include "TokenDef.h"
 };
@@ -57,7 +53,7 @@ static inline bool isOperator(TokenKind kind) {
 struct Token {
   const char *start;
   const char *end;
-  std::string tokenStr;
+  llvm::StringRef tokenStr;
   TokenKind kind;
   Token() : tokenStr("") {}
   inline size_t getLength() const { return (end - start) + 1; }
@@ -101,6 +97,8 @@ class Expr {
  public:
   Expr(ProgramAST *ast) : ast(ast) {}
   virtual ~Expr() = default;
+  enum ExprType : uint8_t { EXPR, INTEGER_LITERAL, ASSIGNEE_REF, BINOP };
+  virtual ExprType getType() { return EXPR; }
 };
 
 class IntegerLiteralExpr : public Expr {
@@ -111,15 +109,18 @@ class IntegerLiteralExpr : public Expr {
   IntegerLiteralExpr(ProgramAST *ast, int64_t value)
       : Expr(ast), value(value) {}
   int64_t getValue() const { return value; }
+  ExprType getType() override { return INTEGER_LITERAL; }
 };
 
 class AssigneeReferenceExpr : public Expr {
  private:
-  const std::string assignee;
+  const llvm::StringRef assignee;
 
  public:
-  AssigneeReferenceExpr(ProgramAST *ast, const std::string &assignee)
+  AssigneeReferenceExpr(ProgramAST *ast, const llvm::StringRef &assignee)
       : Expr(ast), assignee(assignee) {}
+  const llvm::StringRef &getAssignee() const { return assignee; }
+  ExprType getType() override { return ASSIGNEE_REF; }
 };
 
 class BinaryOpExpr : public Expr {
@@ -132,18 +133,24 @@ class BinaryOpExpr : public Expr {
   BinaryOpExpr(ProgramAST *ast, Expr *LHS, TokenKind op, Expr *RHS)
       : Expr(ast), LHS(std::move(LHS)), op(op), RHS(std::move(RHS)) {}
   ~BinaryOpExpr() override { delete LHS; }
+  ExprType getType() override { return BINOP; }
+  TokenKind getOp() { return op; }
+  Expr &getLHS() { return *LHS; }
+  Expr &getRHS() { return *RHS; }
 };
 
-class AssignExpr {
+class AssignStmt {
  private:
   ProgramAST *ast;
-  const std::string assignee;
+  const llvm::StringRef assignee;
   Expr *expr;
 
  public:
-  AssignExpr(ProgramAST *ast, const std::string &assignee, Expr *expr)
+  AssignStmt(ProgramAST *ast, const llvm::StringRef &assignee, Expr *expr)
       : ast(ast), assignee(assignee), expr(std::move(expr)) {}
-  ~AssignExpr() { delete expr; }
+  ~AssignStmt() { delete expr; }
+  const llvm::StringRef &getAssignee() const { return assignee; }
+  Expr &getExpr() { return *expr; }
 };
 
 class OutputStmt {
@@ -154,22 +161,23 @@ class OutputStmt {
  public:
   OutputStmt(ProgramAST *ast, Expr *expr) : ast(ast), expr(std::move(expr)) {}
   ~OutputStmt() { delete expr; }
+  Expr &getExpr() { return *expr; }
 };
 
 class ProgramAST {
  private:
-  std::vector<AssignExpr *> exprList;
+  std::vector<AssignStmt *> exprList;
   OutputStmt *output;
-  std::map<std::string, std::optional<uint8_t>> symbolTable;
 
  public:
   ProgramAST() = default;
   ~ProgramAST();
-  void attachAssignExpr(AssignExpr *assignExpr) {
+  void attachAssignExpr(AssignStmt *assignExpr) {
     exprList.push_back(std::move(assignExpr));
   }
   void attachOutputStmt(OutputStmt *stmt) { output = std::move(stmt); }
-  std::vector<AssignExpr *> &getAssignExprs() { return exprList; }
+  std::vector<AssignStmt *> &getAssignExprs() { return exprList; }
+  OutputStmt &getOutputStmt() { return *output; }
 };
 
 enum Precedence : uint8_t {
