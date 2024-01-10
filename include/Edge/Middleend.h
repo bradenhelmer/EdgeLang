@@ -27,7 +27,9 @@ class MLIRGenerator {
   mlir::Value genExpr(Expr &expr);
 
  public:
-  MLIRGenerator(mlir::MLIRContext &context) : builder(&context) {}
+  MLIRGenerator(mlir::MLIRContext &context) : builder(&context) {
+    std::puts("Initializing MLIR Generator...");
+  }
 
   mlir::ModuleOp genModuleOp(ProgramAST &ast);
 };

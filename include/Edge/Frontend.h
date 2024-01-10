@@ -132,7 +132,10 @@ class BinaryOpExpr : public Expr {
  public:
   BinaryOpExpr(ProgramAST *ast, Expr *LHS, TokenKind op, Expr *RHS)
       : Expr(ast), LHS(std::move(LHS)), op(op), RHS(std::move(RHS)) {}
-  ~BinaryOpExpr() override { delete LHS; }
+  ~BinaryOpExpr() override {
+    delete LHS;
+    delete RHS;
+  }
   ExprType getType() override { return BINOP; }
   TokenKind getOp() { return op; }
   Expr &getLHS() { return *LHS; }

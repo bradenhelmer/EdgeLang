@@ -9,13 +9,14 @@ set(CMAKE_INCLUDE_CURRENT_DIR)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -g -stdlib=libstdc++ -fsantize"
+    "${CMAKE_CXX_FLAGS} -g3 -O0 -stdlib=libstdc++ -fsantize"
     CACHE STRING "C++ Compiler Flags")
 set(CMAKE_BUILD_TYPE "Debug")
 
 # bin aliases
 set(EXE ${CMAKE_BINARY_DIR}/edge)
 set(DBG gdb)
+set(VALGRIND valgrind)
 
 set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
 
@@ -54,8 +55,15 @@ add_custom_target(
   COMMAND ${EXE} ${CMAKE_SOURCE_DIR}/test_file.edge
   DEPENDS edge)
 add_custom_target(format COMMAND clang-format -i ${SOURCES} ${HEADERS})
-add_custom_target(dbg COMMAND ${DBG} -q --args ${EXE}
-                              ${CMAKE_SOURCE_DIR}/test_file.edge)
+add_custom_target(
+  dbg
+  COMMAND ${DBG} -q --args ${EXE} ${CMAKE_SOURCE_DIR}/test_file.edge
+  DEPENDS edge)
+add_custom_target(
+  leak_check
+  COMMAND ${VALGRIND} --leak-check=full ${EXE}
+          ${CMAKE_SOURCE_DIR}/test_file.edge
+  DEPENDS edge)
 
 add_subdirectory(include)
 add_subdirectory(lib)

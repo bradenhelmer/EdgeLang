@@ -185,8 +185,8 @@ Expr *Parser::parseExpr(ProgramAST *out) {
   Expr *LHS;
   switch (currentToken->kind) {
     case INTEGER:
-      LHS =
-          new IntegerLiteralExpr(out, std::stol(currentToken->tokenStr.str()));
+      LHS = new IntegerLiteralExpr(
+          out, static_cast<int64_t>(std::stol(currentToken->tokenStr.str())));
       break;
     case ID:
       LHS = new AssigneeReferenceExpr(out, currentToken->tokenStr);
@@ -229,7 +229,6 @@ Expr *Parser::parseBinaryOpExpr(ProgramAST *out, Expr *LHS, Precedence prec) {
       if (!RHS) return nullptr;
     }
     LHS = new BinaryOpExpr(out, LHS, op, RHS);
-    delete RHS;
   }
 }
 }  // namespace edge
