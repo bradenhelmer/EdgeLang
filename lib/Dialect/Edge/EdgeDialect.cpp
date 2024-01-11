@@ -51,7 +51,7 @@ Operation *EdgeDialect::materializeConstant(OpBuilder &builder, Attribute value,
 // ----------
 void ConstantOp::build(OpBuilder &odsBuilder, OperationState &odsState,
                        int64_t value) {
-  auto dataType = odsBuilder.getIntegerType(CONSTANT_OP_WIDTH, true);
+  auto dataType = GET_SI64_TYPE(odsBuilder);
   auto attr = IntegerAttr::get(dataType, value);
   ConstantOp::build(odsBuilder, odsState, dataType, attr);
 }
@@ -77,8 +77,7 @@ LogicalResult ConstantOp::verify() {
 // ~~~~~
 void AddOp::build(OpBuilder &odsBuilder, OperationState &odsState, Value lhs,
                   Value rhs) {
-  TypeRange valueTypes = {lhs.getType(), rhs.getType()};
-  odsState.addTypes(valueTypes);
+  odsState.addTypes(GET_SI64_TYPE(odsBuilder));
   odsState.addOperands({lhs, rhs});
 }
 
@@ -86,8 +85,7 @@ void AddOp::build(OpBuilder &odsBuilder, OperationState &odsState, Value lhs,
 // ~~~~~
 void SubOp::build(OpBuilder &odsBuilder, OperationState &odsState, Value lhs,
                   Value rhs) {
-  TypeRange valueTypes = {lhs.getType(), rhs.getType()};
-  odsState.addTypes(valueTypes);
+  odsState.addTypes(GET_SI64_TYPE(odsBuilder));
   odsState.addOperands({lhs, rhs});
 }
 
@@ -95,8 +93,7 @@ void SubOp::build(OpBuilder &odsBuilder, OperationState &odsState, Value lhs,
 // ~~~~~
 void MulOp::build(OpBuilder &odsBuilder, OperationState &odsState, Value lhs,
                   Value rhs) {
-  TypeRange valueTypes = {lhs.getType(), rhs.getType()};
-  odsState.addTypes(valueTypes);
+  odsState.addTypes(GET_SI64_TYPE(odsBuilder));
   odsState.addOperands({lhs, rhs});
 }
 
@@ -104,8 +101,7 @@ void MulOp::build(OpBuilder &odsBuilder, OperationState &odsState, Value lhs,
 // ~~~~~
 void DivOp::build(OpBuilder &odsBuilder, OperationState &odsState, Value lhs,
                   Value rhs) {
-  TypeRange valueTypes = {lhs.getType(), rhs.getType()};
-  odsState.addTypes(valueTypes);
+  odsState.addTypes(GET_SI64_TYPE(odsBuilder));
   odsState.addOperands({lhs, rhs});
 }
 
@@ -114,9 +110,7 @@ void RefOp::build(OpBuilder &odsBuilder, OperationState &odsState,
                   llvm::StringRef symbol) {
   SymbolRefAttr symbolRefAttr =
       SymbolRefAttr::get(odsBuilder.getContext(), symbol);
-  RefOp::build(odsBuilder, odsState,
-               odsBuilder.getIntegerType(CONSTANT_OP_WIDTH, true),
-               symbolRefAttr);
+  RefOp::build(odsBuilder, odsState, GET_SI64_TYPE(odsBuilder), symbolRefAttr);
 }
 
 #define GET_OP_CLASSES
