@@ -2,6 +2,7 @@
 // ~~~~~~~~~~~~~~~
 // Implementation of the Edge dialect
 #include <Edge/Dialect/Edge/EdgeDialect.h>
+#include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/IR/Builders.h>
 #include <mlir/IR/BuiltinTypes.h>
 
@@ -22,6 +23,11 @@ static constexpr llvm::StringRef getSignedSemanticsString(
       return "signless";
   }
 }
+
+static const llvm::StringRef symbolRefToStringRef(SymbolRefAttr attr) {
+  return attr.getLeafReference().getValue();
+}
+
 }  // namespace
 
 void EdgeDialect::initialize() {
@@ -31,11 +37,21 @@ void EdgeDialect::initialize() {
       >();
 }
 
+Operation *EdgeDialect::materializeConstant(OpBuilder &builder, Attribute value,
+                                            Type type, Location loc) {
+  if (arith::ConstantOp::isBuildableWith(value, type)) {
+    return builder.create<arith::ConstantOp>(loc, type,
+                                             value.cast<IntegerAttr>());
+  }
+  RefOp ro = builder.create<RefOp>(loc, "test");
+  return nullptr;
+}
+
 // ConstantOp
 // ----------
-void ConstantOp::build(::mlir::OpBuilder &odsBuilder,
-                       ::mlir::OperationState &odsState, int64_t value) {
-  auto dataType = IntegerType::get(odsBuilder.getContext(), CONSTANT_OP_WIDTH);
+void ConstantOp::build(OpBuilder &odsBuilder, OperationState &odsState,
+                       int64_t value) {
+  auto dataType = odsBuilder.getIntegerType(CONSTANT_OP_WIDTH, true);
   auto attr = IntegerAttr::get(dataType, value);
   ConstantOp::build(odsBuilder, odsState, dataType, attr);
 }
@@ -46,7 +62,7 @@ LogicalResult ConstantOp::verify() {
   auto width = type.getWidth() == CONSTANT_OP_WIDTH;
   auto signedSemantics =
       type.getSignedness() == IntegerType::SignednessSemantics::Signed;
-  if (!result && width && signedSemantics) {
+  if (result && width && signedSemantics) {
     return success();
   } else {
     return emitOpError(
@@ -59,9 +75,8 @@ LogicalResult ConstantOp::verify() {
 
 // AddOp
 // ~~~~~
-void AddOp::build(::mlir::OpBuilder &odsBuilder,
-                  ::mlir::OperationState &odsState, mlir::Value lhs,
-                  mlir::Value rhs) {
+void AddOp::build(OpBuilder &odsBuilder, OperationState &odsState, Value lhs,
+                  Value rhs) {
   TypeRange valueTypes = {lhs.getType(), rhs.getType()};
   odsState.addTypes(valueTypes);
   odsState.addOperands({lhs, rhs});
@@ -69,9 +84,8 @@ void AddOp::build(::mlir::OpBuilder &odsBuilder,
 
 // SubOp
 // ~~~~~
-void SubOp::build(::mlir::OpBuilder &odsBuilder,
-                  ::mlir::OperationState &odsState, mlir::Value lhs,
-                  mlir::Value rhs) {
+void SubOp::build(OpBuilder &odsBuilder, OperationState &odsState, Value lhs,
+                  Value rhs) {
   TypeRange valueTypes = {lhs.getType(), rhs.getType()};
   odsState.addTypes(valueTypes);
   odsState.addOperands({lhs, rhs});
@@ -79,9 +93,8 @@ void SubOp::build(::mlir::OpBuilder &odsBuilder,
 
 // MulOp
 // ~~~~~
-void MulOp::build(::mlir::OpBuilder &odsBuilder,
-                  ::mlir::OperationState &odsState, mlir::Value lhs,
-                  mlir::Value rhs) {
+void MulOp::build(OpBuilder &odsBuilder, OperationState &odsState, Value lhs,
+                  Value rhs) {
   TypeRange valueTypes = {lhs.getType(), rhs.getType()};
   odsState.addTypes(valueTypes);
   odsState.addOperands({lhs, rhs});
@@ -89,21 +102,54 @@ void MulOp::build(::mlir::OpBuilder &odsBuilder,
 
 // DivOp
 // ~~~~~
-void DivOp::build(::mlir::OpBuilder &odsBuilder,
-                  ::mlir::OperationState &odsState, mlir::Value lhs,
-                  mlir::Value rhs) {
+void DivOp::build(OpBuilder &odsBuilder, OperationState &odsState, Value lhs,
+                  Value rhs) {
   TypeRange valueTypes = {lhs.getType(), rhs.getType()};
   odsState.addTypes(valueTypes);
   odsState.addOperands({lhs, rhs});
 }
 
 // RefOp
-void RefOp::build(::mlir::OpBuilder &odsBuilder,
-                  ::mlir::OperationState &odsState, llvm::StringRef symbol) {
+void RefOp::build(OpBuilder &odsBuilder, OperationState &odsState,
+                  llvm::StringRef symbol) {
   SymbolRefAttr symbolRefAttr =
       SymbolRefAttr::get(odsBuilder.getContext(), symbol);
-  RefOp::build(odsBuilder, odsState, odsBuilder.getI64Type(), symbolRefAttr);
+  RefOp::build(odsBuilder, odsState,
+               odsBuilder.getIntegerType(CONSTANT_OP_WIDTH, true),
+               symbolRefAttr);
 }
 
 #define GET_OP_CLASSES
 #include <Edge/Dialect/Edge/EdgeOps.cpp.inc>
+
+// Pattern Rewriting: TableGen not working so doing it manually.
+LogicalResult DivOp::canonicalize(DivOp op, PatternRewriter &reWriter) {
+  Value LHS = op.getOperands()[0];
+  Value RHS = op.getOperands()[1];
+
+  RefOp lRef = LHS.getDefiningOp<RefOp>(), rRef = RHS.getDefiningOp<RefOp>();
+
+  if (lRef && rRef) {
+    llvm::StringRef lSym = symbolRefToStringRef(lRef.getSymbol()),
+                    rSym = symbolRefToStringRef(rRef.getSymbol());
+
+    if (lSym == rSym) {
+      reWriter.replaceOp(op,
+                         reWriter.create<ConstantOp>(reWriter.getUnknownLoc(),
+                                                     static_cast<int64_t>(1)));
+      return success();
+    }
+  }
+  ConstantOp lConst = LHS.getDefiningOp<ConstantOp>(),
+             rConst = RHS.getDefiningOp<ConstantOp>();
+  if (lConst && rConst) {
+    int64_t lVal = lConst.getValue(), rVal = rConst.getValue();
+    if (lVal == rVal) {
+      reWriter.replaceOp(op,
+                         reWriter.create<ConstantOp>(reWriter.getUnknownLoc(),
+                                                     static_cast<int64_t>(1)));
+      return success();
+    }
+  }
+  return failure();
+}

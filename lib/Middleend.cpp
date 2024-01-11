@@ -2,7 +2,6 @@
 // ~~~~~~~~~~~~~
 // Handles the generation of Edge MLIR.
 #include <Edge/Middleend.h>
-#include <mlir/IR/SymbolTable.h>
 
 #include <iostream>
 
@@ -52,6 +51,13 @@ OutputOp MLIRGenerator::genOutputOp(OutputStmt &outputStmt) {
 }
 
 RefOp MLIRGenerator::genRefOp(AssigneeReferenceExpr &refExpr) {
+  auto assignee = refExpr.getAssignee();
+  if (!symbolTable.lookup(assignee)) {
+    mlir::emitError(
+        builder.getUnknownLoc(),
+        "Reference operation trying to reference a symbol not in scope!");
+    return nullptr;
+  }
   return builder.create<RefOp>(builder.getUnknownLoc(), refExpr.getAssignee());
 }
 
@@ -90,5 +96,4 @@ mlir::Value MLIRGenerator::genExpr(Expr &expr) {
       return nullptr;
   }
 }
-
 }  // namespace edge

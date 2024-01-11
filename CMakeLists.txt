@@ -41,7 +41,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_BINARY_DIR}/include)
 
 add_library(edgelib OBJECT ${SOURCES})
-set(EDGE_LIBS EdgeIR edgelib MLIRMemRefDialect)
+set(EDGE_LIBS EdgeIR edgelib MLIRPass MLIRTransforms)
 
 # Compiler binary
 add_executable(edge $<TARGET_OBJECTS:edgelib>)

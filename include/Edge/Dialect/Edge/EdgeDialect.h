@@ -7,6 +7,9 @@
 #include <mlir/IR/Dialect.h>
 
 #include <Edge/Dialect/Edge/EdgeDialect.h.inc>
+
+#include "mlir/IR/Matchers.h"
+#include "mlir/IR/PatternMatch.h"
 #define GET_OP_CLASSES
 #include <Edge/Dialect/Edge/EdgeOps.h.inc>
 
