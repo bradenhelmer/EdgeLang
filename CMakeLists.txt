@@ -47,11 +47,6 @@ set(EDGE_LIBS
     EdgeIR
     EdgePasses
     edgelib
-    MLIRAnalysis
-    MLIRArithDialect
-    MLIRMemRefDialect
-    MLIRPass
-    MLIRTransforms
     ${dialect_libs}
     ${extension_libs})
 
