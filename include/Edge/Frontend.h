@@ -7,13 +7,13 @@
 // ~~~~~~~~~~~~~~~~~~~~
 #ifndef EDGELANG_FRONTEND_H
 #define EDGELANG_FRONTEND_H
+#include <llvm/ADT/SmallVector.h>
 #include <llvm/ADT/StringRef.h>
 
 #include <cstring>
 #include <iostream>
 #include <map>
 #include <optional>
-#include <vector>
 
 namespace edge {
 
@@ -169,7 +169,7 @@ class OutputStmt {
 
 class ProgramAST {
  private:
-  std::vector<AssignStmt *> exprList;
+  llvm::SmallVector<AssignStmt *> exprList;
   OutputStmt *output;
 
  public:
@@ -179,7 +179,7 @@ class ProgramAST {
     exprList.push_back(std::move(assignExpr));
   }
   void attachOutputStmt(OutputStmt *stmt) { output = std::move(stmt); }
-  std::vector<AssignStmt *> &getAssignExprs() { return exprList; }
+  llvm::SmallVector<AssignStmt *> &getAssignExprs() { return exprList; }
   OutputStmt &getOutputStmt() { return *output; }
 };
 

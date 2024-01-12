@@ -35,7 +35,7 @@ def ConstantOp : EdgeOp<"constant", [Pure, ConstantLike]> {
   	];
 
 	let hasVerifier = 1;
-	let assemblyFormat = "attr-dict";
+	let hasFolder = 1;
 }
 
 def AddOp : EdgeOp<"add"> {

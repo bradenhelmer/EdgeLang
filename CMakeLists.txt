@@ -40,8 +40,20 @@ include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_BINARY_DIR}/include)
 
+get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
+get_property(extension_libs GLOBAL PROPERTY MLIR_EXTENSION_LIBS)
 add_library(edgelib OBJECT ${SOURCES})
-set(EDGE_LIBS EdgeIR edgelib MLIRPass MLIRTransforms)
+set(EDGE_LIBS
+    EdgeIR
+    EdgePasses
+    edgelib
+    MLIRAnalysis
+    MLIRArithDialect
+    MLIRMemRefDialect
+    MLIRPass
+    MLIRTransforms
+    ${dialect_libs}
+    ${extension_libs})
 
 # Compiler binary
 add_executable(edge $<TARGET_OBJECTS:edgelib>)

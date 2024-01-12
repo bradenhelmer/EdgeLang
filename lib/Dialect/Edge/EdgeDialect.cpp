@@ -43,7 +43,6 @@ Operation *EdgeDialect::materializeConstant(OpBuilder &builder, Attribute value,
     return builder.create<arith::ConstantOp>(loc, type,
                                              value.cast<IntegerAttr>());
   }
-  RefOp ro = builder.create<RefOp>(loc, "test");
   return nullptr;
 }
 
@@ -71,6 +70,10 @@ LogicalResult ConstantOp::verify() {
            << type.getWidth() << " bit "
            << getSignedSemanticsString(type.getSignedness()) << " integer!";
   }
+}
+
+OpFoldResult ConstantOp::fold(FoldAdaptor adaptor) {
+  return adaptor.getValueAttr();
 }
 
 // AddOp
