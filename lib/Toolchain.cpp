@@ -1,6 +1,7 @@
 // Toolchain.cpp
 // ~~~~~~~~~~~~~
 // Toolchain implementation
+#include <Edge/Conversion/Edge/Passes.h>
 #include <Edge/Dialect/Edge/EdgeDialect.h>
 #include <Edge/Frontend.h>
 #include <Edge/Middleend.h>
@@ -23,6 +24,7 @@ void Toolchain::executeToolchain() {
 
   mlir::PassManager pm = mlir::PassManager::on<mlir::ModuleOp>(&context);
   pm.addPass(mlir::createCanonicalizerPass());
+  pm.addPass(edge::createIntermediateEdgeLoweringPass());
   auto result = pm.run(module.get());
 
   module->dump();
