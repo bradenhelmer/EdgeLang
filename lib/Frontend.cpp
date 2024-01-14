@@ -123,10 +123,10 @@ bool Lexer::lexNumericLiteral(Token *out, const char *currPtr) {
   do {
     currPtr++;
   } while (isdigit(*currPtr));
+  out->end = currPtr - 1;
 
   out->tokenStr = llvm::StringRef(out->start, out->getLength());
 
-  out->end = currPtr - 1;
   bufPtr = currPtr;
   return true;
 }
