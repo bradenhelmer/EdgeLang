@@ -37,15 +37,6 @@ void EdgeDialect::initialize() {
       >();
 }
 
-Operation *EdgeDialect::materializeConstant(OpBuilder &builder, Attribute value,
-                                            Type type, Location loc) {
-  if (arith::ConstantOp::isBuildableWith(value, type)) {
-    return builder.create<arith::ConstantOp>(loc, type,
-                                             value.cast<IntegerAttr>());
-  }
-  return nullptr;
-}
-
 // ConstantOp
 // ----------
 void ConstantOp::build(OpBuilder &odsBuilder, OperationState &odsState,

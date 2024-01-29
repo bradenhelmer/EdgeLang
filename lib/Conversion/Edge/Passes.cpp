@@ -3,11 +3,9 @@
 // Edge lowering pass implementations.
 #include <Edge/Conversion/Edge/Passes.h>
 #include <Edge/Dialect/Edge/EdgeDialect.h>
-#include <mlir/Transforms/DialectConversion.h>
 
+#include <iostream>
 using namespace mlir;
-using namespace mlir::arith;
-using namespace mlir::memref;
 
 namespace edge {
 #define GEN_PASS_DEF_INTERMEDIATEEDGELOWERINGPASS
@@ -18,13 +16,27 @@ static MemRefType getSI64MemRefType(MLIRContext *ctx) {
       {1}, IntegerType::get(ctx, CONSTANT_OP_WIDTH, IntegerType::Signed));
 }
 
-struct ConstantOpLowering : public OpRewritePattern<ConstantOp> {
-  using OpRewritePattern<ConstantOp>::OpRewritePattern;
+EdgeTypeConverter::EdgeTypeConverter(mlir::MLIRContext *ctx) : ctx(ctx) {
+  addConversion([&](IntegerType type) { return convertIntegerType(type); });
+}
 
-  LogicalResult matchAndRewrite(ConstantOp op,
-                                PatternRewriter &reWriter) const final {
-    reWriter.replaceOp(op, reWriter.create<arith::ConstantOp>(
-                               reWriter.getUnknownLoc(), op.getValueAttr()));
+Type EdgeTypeConverter::convertIntegerType(IntegerType type) {
+  return IntegerType::get(getContext(), CONSTANT_OP_WIDTH,
+                          IntegerType::Signless);
+}
+struct ConstantOpLoweringPattern : public OpConversionPattern<ConstantOp> {
+  using OpConversionPattern<ConstantOp>::OpConversionPattern;
+
+  LogicalResult matchAndRewrite(
+      ConstantOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &reWriter) const override {
+    TypeConverter *TC = getTypeConverter();
+    mlir::Type newType = TC->convertType(op.getType());
+    if (!newType) return failure();
+    auto newAttr = IntegerAttr::get(newType, op.getValue());
+    auto newOp = reWriter.create<arith::ConstantOp>(op.getLoc(), newAttr);
+    reWriter.replaceAllUsesWith(op.getResult(), newOp.getResult());
+    reWriter.replaceOp(op, newOp.getResult());
     return success();
   }
 };
@@ -34,20 +46,26 @@ struct IntermediateEdgeLoweringPass
           IntermediateEdgeLoweringPass> {
   using IntermediateEdgeLoweringPassBase ::IntermediateEdgeLoweringPassBase;
 
+ private:
+  void populateEdgeConversionPatterns(RewritePatternSet &patterns,
+                                      EdgeTypeConverter &converter) {
+    patterns.add<ConstantOpLoweringPattern>(converter, &getContext());
+  }
+
+ public:
   void runOnOperation() override {
     ConversionTarget target(getContext());
 
     target.addLegalDialect<arith::ArithDialect, memref::MemRefDialect>();
-    /* target.addIllegalDialect<EdgeDialect>(); */
-    /* target.addDynamicallyLegalOp<OutputOp>([](OutputOp op) { */
-    /*   return llvm::none_of(op->getOperandTypes(), */
-    /*                        [](Type type) { return type.isa<IntegerType>();
-     * }); */
-    /* }); */
+
+    // Marking op legality
+    target.addIllegalDialect<EdgeDialect>();
+    target.addDynamicallyLegalOp<OutputOp>(
+        [](OutputOp op) { return llvm::isa<OutputOp>(op); });
 
     RewritePatternSet patterns(&getContext());
-    patterns.add<ConstantOpLowering>(&getContext());
-
+    EdgeTypeConverter converter(&getContext());
+    populateEdgeConversionPatterns(patterns, converter);
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns)))) {
       signalPassFailure();

@@ -8,10 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_INCLUDE_CURRENT_DIR)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -g3 -O0 -stdlib=libstdc++ -fsantize"
-    CACHE STRING "C++ Compiler Flags")
 set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
 
 # bin aliases
 set(EXE ${CMAKE_BINARY_DIR}/edge)
@@ -43,18 +41,14 @@ include_directories(${PROJECT_BINARY_DIR}/include)
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(extension_libs GLOBAL PROPERTY MLIR_EXTENSION_LIBS)
 add_library(edgelib OBJECT ${SOURCES})
-set(EDGE_LIBS
-    EdgeIR
-    EdgePasses
-    edgelib
-    ${dialect_libs}
-    ${extension_libs})
+set(EDGE_LIBS EdgeIR EdgePasses edgelib ${dialect_libs} ${extension_libs})
 
 # Compiler binary
 add_executable(edge $<TARGET_OBJECTS:edgelib>)
 target_link_libraries(edge ${EDGE_LIBS})
+target_compile_definitions(edge PUBLIC HANDLE_OUTPUT)
 # Must compile and TableGen files before building edgelib
-add_dependencies(edgelib EdgeIR)
+add_dependencies(edgelib EdgePasses EdgeIR)
 
 # Targets
 add_custom_target(

@@ -2,8 +2,7 @@
 // ~~~~~~~~~~~~~
 // Handles the generation of Edge MLIR.
 #include <Edge/Middleend.h>
-
-#include <iostream>
+#include <mlir/IR/MLIRContext.h>
 
 namespace edge {
 

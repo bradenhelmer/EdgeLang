@@ -2,6 +2,7 @@ add_mlir_dialect_library(
   EdgePasses
   Passes.cpp
   DEPENDS
+  EdgeIR
   EdgeIntermediateLoweringPassIncGen
   LINK_LIBS
   PUBLIC

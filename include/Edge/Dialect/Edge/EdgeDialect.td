@@ -8,13 +8,11 @@ include "mlir/IR/DialectBase.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/IR/SymbolInterfaces.td"
 include "mlir/IR/OpBase.td"
-include "mlir/IR/PatternBase.td"
 
 def Edge_Dialect : Dialect {
     let name = "edge";
     let summary = "A simple dialect for arithmetic operations.";
     let cppNamespace = "::edge";
-	let hasConstantMaterializer = 1;
 }
 
 class EdgeOp<string mnemonic, list<Trait> traits = []> :
@@ -125,7 +123,7 @@ def AssignOp : EdgeOp<"assign"> {
 
 def OutputOp : EdgeOp<"output"> {
 	let summary = "Output an expression or value";
-	let arguments = (ins SI64:$output_val);
+	let arguments = (ins AnyInteger:$output_val);
 }
 
 #endif // EDGE_DIALECT_TD
