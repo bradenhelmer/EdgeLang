@@ -24,6 +24,7 @@ Type EdgeTypeConverter::convertIntegerType(IntegerType type) {
   return IntegerType::get(getContext(), CONSTANT_OP_WIDTH,
                           IntegerType::Signless);
 }
+
 struct ConstantOpLoweringPattern : public OpConversionPattern<ConstantOp> {
   using OpConversionPattern<ConstantOp>::OpConversionPattern;
 
@@ -34,9 +35,36 @@ struct ConstantOpLoweringPattern : public OpConversionPattern<ConstantOp> {
     mlir::Type newType = TC->convertType(op.getType());
     if (!newType) return failure();
     auto newAttr = IntegerAttr::get(newType, op.getValue());
-    auto newOp = reWriter.create<arith::ConstantOp>(op.getLoc(), newAttr);
-    reWriter.replaceAllUsesWith(op.getResult(), newOp.getResult());
-    reWriter.replaceOp(op, newOp.getResult());
+    auto newOp =
+        reWriter.create<arith::ConstantOp>(reWriter.getUnknownLoc(), newAttr);
+    op.replaceAllUsesWith(newOp.getResult());
+    op.erase();
+    return success();
+  }
+};
+
+struct AddOpLoweringPattern : public OpConversionPattern<AddOp> {
+  using OpConversionPattern<AddOp>::OpConversionPattern;
+
+  LogicalResult matchAndRewrite(
+      AddOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &reWriter) const override {
+    auto newOp = reWriter.create<arith::AddIOp>(
+        reWriter.getUnknownLoc(), adaptor.getLhs(), adaptor.getRhs());
+    op.replaceAllUsesWith(newOp.getResult());
+    op.erase();
+    return success();
+  }
+};
+
+struct OutputOpLoweringPattern : public OpConversionPattern<OutputOp> {
+  using OpConversionPattern<OutputOp>::OpConversionPattern;
+
+  LogicalResult matchAndRewrite(
+      OutputOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &reWriter) const override {
+    reWriter.updateRootInPlace(op,
+                               [&] { op->setOperands(adaptor.getOperands()); });
     return success();
   }
 };
@@ -49,7 +77,8 @@ struct IntermediateEdgeLoweringPass
  private:
   void populateEdgeConversionPatterns(RewritePatternSet &patterns,
                                       EdgeTypeConverter &converter) {
-    patterns.add<ConstantOpLoweringPattern>(converter, &getContext());
+    patterns.add<ConstantOpLoweringPattern, AddOpLoweringPattern>(
+        converter, &getContext());
   }
 
  public:
@@ -60,8 +89,7 @@ struct IntermediateEdgeLoweringPass
 
     // Marking op legality
     target.addIllegalDialect<EdgeDialect>();
-    target.addDynamicallyLegalOp<OutputOp>(
-        [](OutputOp op) { return llvm::isa<OutputOp>(op); });
+    target.addLegalOp<OutputOp>();
 
     RewritePatternSet patterns(&getContext());
     EdgeTypeConverter converter(&getContext());
