@@ -57,6 +57,48 @@ struct AddOpLoweringPattern : public OpConversionPattern<AddOp> {
   }
 };
 
+struct SubOpLoweringPattern : public OpConversionPattern<SubOp> {
+  using OpConversionPattern<SubOp>::OpConversionPattern;
+
+  LogicalResult matchAndRewrite(
+      SubOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &reWriter) const override {
+    auto newOp = reWriter.create<arith::SubIOp>(
+        reWriter.getUnknownLoc(), adaptor.getLhs(), adaptor.getRhs());
+    op.replaceAllUsesWith(newOp.getResult());
+    op.erase();
+    return success();
+  }
+};
+
+struct MulOpLoweringPattern : public OpConversionPattern<MulOp> {
+  using OpConversionPattern<MulOp>::OpConversionPattern;
+
+  LogicalResult matchAndRewrite(
+      MulOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &reWriter) const override {
+    auto newOp = reWriter.create<arith::MulIOp>(
+        reWriter.getUnknownLoc(), adaptor.getLhs(), adaptor.getRhs());
+    op.replaceAllUsesWith(newOp.getResult());
+    op.erase();
+    return success();
+  }
+};
+
+struct DivOpLoweringPattern : public OpConversionPattern<DivOp> {
+  using OpConversionPattern<DivOp>::OpConversionPattern;
+
+  LogicalResult matchAndRewrite(
+      DivOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &reWriter) const override {
+    auto newOp = reWriter.create<arith::DivSIOp>(
+        reWriter.getUnknownLoc(), adaptor.getLhs(), adaptor.getRhs());
+    op.replaceAllUsesWith(newOp.getResult());
+    op.erase();
+    return success();
+  }
+};
+
 struct OutputOpLoweringPattern : public OpConversionPattern<OutputOp> {
   using OpConversionPattern<OutputOp>::OpConversionPattern;
 
@@ -77,8 +119,10 @@ struct IntermediateEdgeLoweringPass
  private:
   void populateEdgeConversionPatterns(RewritePatternSet &patterns,
                                       EdgeTypeConverter &converter) {
-    patterns.add<ConstantOpLoweringPattern, AddOpLoweringPattern>(
-        converter, &getContext());
+    patterns
+        .add<ConstantOpLoweringPattern, AddOpLoweringPattern,
+             SubOpLoweringPattern, MulOpLoweringPattern, DivOpLoweringPattern>(
+            converter, &getContext());
   }
 
  public:
