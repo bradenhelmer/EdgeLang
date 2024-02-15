@@ -11,9 +11,18 @@ namespace edge {
 #define GEN_PASS_DEF_INTERMEDIATEEDGELOWERINGPASS
 #include <Edge/Conversion/Edge/Passes.h.inc>
 
-static MemRefType getSI64MemRefType(MLIRContext *ctx) {
+static MemRefType getI64MemRefType(MLIRContext *ctx) {
   return MemRefType::get(
-      {1}, IntegerType::get(ctx, CONSTANT_OP_WIDTH, IntegerType::Signed));
+      {1}, IntegerType::get(ctx, CONSTANT_OP_WIDTH, IntegerType::Signless));
+}
+
+static arith::ConstantIndexOp zerothIdx = nullptr;
+
+static arith::ConstantIndexOp &getZeroth(OpBuilder &builder) {
+  if (!zerothIdx)
+    zerothIdx =
+        builder.create<arith::ConstantIndexOp>(builder.getUnknownLoc(), 0);
+  return zerothIdx;
 }
 
 EdgeTypeConverter::EdgeTypeConverter(mlir::MLIRContext *ctx) : ctx(ctx) {
@@ -99,6 +108,64 @@ struct DivOpLoweringPattern : public OpConversionPattern<DivOp> {
   }
 };
 
+struct AssignOpLoweringPattern : public OpConversionPattern<AssignOp> {
+  EdgeSymbolTable *symTable;
+
+  AssignOpLoweringPattern(MLIRContext *context, EdgeSymbolTable *symTable)
+      : OpConversionPattern<AssignOp>(context), symTable(symTable) {}
+
+  LogicalResult matchAndRewrite(
+      AssignOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &reWriter) const override {
+    // Create allocation if not already
+    if (symTable->find(op.getSymbol()) == symTable->end()) {
+      //
+      // Allocate at the top
+      Block *currBlock = reWriter.getBlock();
+      reWriter.setInsertionPointToStart(currBlock);
+      // Create allocation and insert into symbol table
+      memref::AllocOp allocation = reWriter.create<memref::AllocOp>(
+          reWriter.getUnknownLoc(), getI64MemRefType(getContext()));
+      symTable->insert(
+          std::pair<llvm::StringRef, Value>(op.getSymbol(), allocation));
+    }
+
+    Value valToStore = adaptor.getValue();
+    Value allocatedMem = symTable->find(op.getSymbol())->second;
+
+    reWriter.create<memref::StoreOp>(reWriter.getUnknownLoc(), valToStore,
+                                     allocatedMem,
+                                     getZeroth(reWriter).getResult());
+    op.erase();
+
+    return success();
+  }
+};
+
+struct RefOpLoweringPattern : public OpConversionPattern<RefOp> {
+  EdgeSymbolTable *symTable;
+
+  RefOpLoweringPattern(MLIRContext *context, EdgeSymbolTable *symTable)
+      : OpConversionPattern<RefOp>(context), symTable(symTable) {}
+
+  LogicalResult matchAndRewrite(
+      RefOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &reWriter) const override {
+    llvm::StringRef refSym = op.getSymbol().getRootReference().getValue();
+    if (symTable->find(refSym) == symTable->end()) {
+      return emitError(op.getLoc(),
+                       "Cannot reference symbol not in symbol table!");
+    }
+    memref::LoadOp load = reWriter.create<memref::LoadOp>(
+        reWriter.getUnknownLoc(), symTable->at(refSym),
+        getZeroth(reWriter).getResult());
+    ;
+    op.replaceAllUsesWith(load.getResult());
+    op.erase();
+    return success();
+  }
+};
+
 struct OutputOpLoweringPattern : public OpConversionPattern<OutputOp> {
   using OpConversionPattern<OutputOp>::OpConversionPattern;
 
@@ -118,11 +185,14 @@ struct IntermediateEdgeLoweringPass
 
  private:
   void populateEdgeConversionPatterns(RewritePatternSet &patterns,
-                                      EdgeTypeConverter &converter) {
+                                      EdgeTypeConverter &converter,
+                                      EdgeSymbolTable &symTable) {
     patterns
         .add<ConstantOpLoweringPattern, AddOpLoweringPattern,
              SubOpLoweringPattern, MulOpLoweringPattern, DivOpLoweringPattern>(
-            converter, &getContext());
+            converter, &getContext())
+        .add<AssignOpLoweringPattern, RefOpLoweringPattern>(&getContext(),
+                                                            &symTable);
   }
 
  public:
@@ -137,7 +207,8 @@ struct IntermediateEdgeLoweringPass
 
     RewritePatternSet patterns(&getContext());
     EdgeTypeConverter converter(&getContext());
-    populateEdgeConversionPatterns(patterns, converter);
+    EdgeSymbolTable symTable;
+    populateEdgeConversionPatterns(patterns, converter, symTable);
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns)))) {
       signalPassFailure();
@@ -147,5 +218,5 @@ struct IntermediateEdgeLoweringPass
 
 std::unique_ptr<OperationPass<ModuleOp>> createIntermediateEdgeLoweringPass() {
   return std::make_unique<IntermediateEdgeLoweringPass>();
-}
+};
 }  // namespace edge

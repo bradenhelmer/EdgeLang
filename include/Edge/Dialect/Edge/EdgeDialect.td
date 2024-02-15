@@ -118,7 +118,7 @@ def AssignOp : EdgeOp<"assign"> {
 		A = 3
 		B = A + 1
 	}];
-	let arguments = (ins SymbolNameAttr:$symbol, SI64:$value);
+	let arguments = (ins SymbolNameAttr:$symbol, AnyInteger:$value);
 }
 
 def OutputOp : EdgeOp<"output"> {

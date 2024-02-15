@@ -17,4 +17,6 @@
 
 #define GET_SI64_TYPE(BUILDER) BUILDER.getIntegerType(CONSTANT_OP_WIDTH, true)
 
+using EdgeSymbolTable = std::map<llvm::StringRef, mlir::Value>;
+
 #endif  // EDGE_DIALECT_EDGE_DIALECT_H
