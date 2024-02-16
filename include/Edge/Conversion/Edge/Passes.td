@@ -12,4 +12,10 @@ def IntermediateEdgeLoweringPass : Pass<"Intermediate-Edge-Lowering", "mlir::Mod
 	let dependentDialects = ["mlir::arith::ArithDialect", "mlir::memref::MemRefDialect"];
 }
 
+def LLVMIntermediateLoweringPass : Pass<"LLVM-Intermediate-Lowering", "mlir::ModuleOp"> {
+	let summary = "Lowering intermediary IR position of arith/memref/edge::OutputOp operations to LLVM.";
+	let constructor = "edge::createLLVMIntermediateLoweringPass()";
+	let dependentDialects = ["mlir::LLVM::LLVMDialect"];
+}
+
 #endif

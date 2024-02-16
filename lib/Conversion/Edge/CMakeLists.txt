@@ -1,6 +1,7 @@
 add_mlir_dialect_library(
   EdgePasses
-  Passes.cpp
+  IntermediateEdgeLoweringPass.cpp
+  LLVMIntermediateLoweringPass.cpp
   DEPENDS
   EdgeIR
   EdgeIntermediateLoweringPassIncGen

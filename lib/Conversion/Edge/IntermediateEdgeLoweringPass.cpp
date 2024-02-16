@@ -1,6 +1,7 @@
-// Passes.cpp
+// IntermediateEdgeLoweringPass.cpp
 // ~~~~~~~~~~
-// Edge lowering pass implementations.
+// Edge lowering to arith/memref implementations.
+#include <Edge/Common.h>
 #include <Edge/Conversion/Edge/Passes.h>
 #include <Edge/Dialect/Edge/EdgeDialect.h>
 
@@ -16,12 +17,14 @@ static MemRefType getI64MemRefType(MLIRContext *ctx) {
       {1}, IntegerType::get(ctx, CONSTANT_OP_WIDTH, IntegerType::Signless));
 }
 
-static arith::ConstantIndexOp zerothIdx = nullptr;
-
 static arith::ConstantIndexOp &getZeroth(OpBuilder &builder) {
-  if (!zerothIdx)
+  if (!zerothIdx) {
+    OpBuilder::InsertionGuard insertGuard(builder);
+    builder.setInsertionPointToStart(builder.getBlock());
     zerothIdx =
         builder.create<arith::ConstantIndexOp>(builder.getUnknownLoc(), 0);
+  }
+
   return zerothIdx;
 }
 
@@ -122,6 +125,7 @@ struct AssignOpLoweringPattern : public OpConversionPattern<AssignOp> {
       //
       // Allocate at the top
       Block *currBlock = reWriter.getBlock();
+      OpBuilder::InsertionGuard IG(reWriter);
       reWriter.setInsertionPointToStart(currBlock);
       // Create allocation and insert into symbol table
       memref::AllocOp allocation = reWriter.create<memref::AllocOp>(

@@ -123,7 +123,7 @@ def AssignOp : EdgeOp<"assign"> {
 
 def OutputOp : EdgeOp<"output"> {
 	let summary = "Output an expression or value";
-	let arguments = (ins AnyInteger:$output_val);
+	let arguments = (ins AnyInteger:$input);
 }
 
 #endif // EDGE_DIALECT_TD

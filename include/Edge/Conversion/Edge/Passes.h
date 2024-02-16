@@ -14,6 +14,8 @@ namespace edge {
 
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 createIntermediateEdgeLoweringPass();
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
+createLLVMIntermediateLoweringPass();
 
 struct EdgeTypeConverter : public mlir::TypeConverter {
  private:
