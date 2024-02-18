@@ -17,6 +17,7 @@ set(DBG gdb)
 set(VALGRIND valgrind)
 
 set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
+set(LLVM_LINK_COMPONENTS Core Support nativecodegen OrcJIT JITLink)
 
 # Source Files
 set(LIB_DIR "${CMAKE_SOURCE_DIR}/lib")
@@ -40,8 +41,16 @@ include_directories(${PROJECT_BINARY_DIR}/include)
 
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(extension_libs GLOBAL PROPERTY MLIR_EXTENSION_LIBS)
+get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 add_library(edgelib OBJECT ${SOURCES})
-set(EDGE_LIBS EdgeIR EdgePasses edgelib ${dialect_libs} ${extension_libs})
+set(EDGE_LIBS
+    EdgeIR
+    EdgePasses
+    edgelib
+    MLIRExecutionEngine
+    ${dialect_libs}
+    ${conversion_libs}
+    ${extension_libs})
 
 # Compiler binary
 add_executable(edge $<TARGET_OBJECTS:edgelib>)

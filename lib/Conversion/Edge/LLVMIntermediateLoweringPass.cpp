@@ -5,11 +5,15 @@
 #include <Edge/Conversion/Edge/Passes.h>
 #include <Edge/Dialect/Edge/EdgeDialect.h>
 #include <mlir/Conversion/ArithToLLVM/ArithToLLVM.h>
+#include <mlir/Conversion/FuncToLLVM/ConvertFuncToLLVM.h>
+#include <mlir/Conversion/LLVMCommon/ConversionTarget.h>
 #include <mlir/Conversion/LLVMCommon/TypeConverter.h>
 #include <mlir/Conversion/MemRefToLLVM/MemRefToLLVM.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/Dialect/LLVMIR/LLVMDialect.h>
 #include <mlir/Dialect/LLVMIR/LLVMTypes.h>
+
+#include <cstdint>
 
 using namespace mlir;
 namespace edge {
@@ -22,9 +26,9 @@ static FlatSymbolRefAttr retrievePrintf(PatternRewriter &reWriter,
   if (module.lookupSymbol<LLVM::LLVMFuncOp>("printf"))
     return SymbolRefAttr::get(ctx, "printf");
 
-  auto llvmI64Ty = IntegerType::get(ctx, 64);
+  auto llvmI32Ty = IntegerType::get(ctx, 32);
   auto llvmI8PtrTy = LLVM::LLVMPointerType::get(IntegerType::get(ctx, 8));
-  auto llvmFnType = LLVM::LLVMFunctionType::get(llvmI64Ty, llvmI8PtrTy, true);
+  auto llvmFnType = LLVM::LLVMFunctionType::get(llvmI32Ty, llvmI8PtrTy, true);
 
   PatternRewriter::InsertionGuard insertGuard(reWriter);
   reWriter.setInsertionPointToStart(module.getBody());
@@ -42,10 +46,9 @@ static Value getOrCreateGlobalString(Location loc, OpBuilder &builder,
     builder.setInsertionPointToStart(module.getBody());
     auto type = LLVM::LLVMArrayType::get(
         IntegerType::get(builder.getContext(), 8), value.size());
-    global = builder.create<LLVM::GlobalOp>(loc, type, /*isConstant=*/true,
-                                            LLVM::Linkage::Internal, name,
-                                            builder.getStringAttr(value),
-                                            /*alignment=*/0);
+    global =
+        builder.create<LLVM::GlobalOp>(loc, type, true, LLVM::Linkage::Internal,
+                                       name, builder.getStringAttr(value), 0);
   }
 
   // Get the pointer to the first character in the global string.
@@ -67,16 +70,16 @@ struct OutputOpLoweringPattern : public OpConversionPattern<OutputOp> {
     FlatSymbolRefAttr printf = retrievePrintf(reWriter, parentModule);
     Location loc = op.getLoc();
 
-    Value formatSpecifierCst = getOrCreateGlobalString(
-        loc, reWriter, "frmt_spec", StringRef("%ld\0", 4), parentModule);
-    Value newLineCst = getOrCreateGlobalString(
-        loc, reWriter, "nl", StringRef("\n\0", 2), parentModule);
+    // Create printf format specifer.
+    Value formatSpecifierCst =
+        getOrCreateGlobalString(loc, reWriter, "frmt_spec",
+                                StringRef("Result: %ld\n", 12), parentModule);
 
     auto outputOp = cast<OutputOp>(op);
 
-    auto callPrintFOp = reWriter.create<LLVM::CallOp>(
-        reWriter.getUnknownLoc(), reWriter.getI64Type(), printf,
-        llvm::ArrayRef<Value>({formatSpecifierCst, adaptor.getInput()}));
+    reWriter.create<func::CallOp>(
+        loc, printf, reWriter.getIntegerType(32),
+        ArrayRef<Value>({formatSpecifierCst, outputOp.getOperand()}));
 
     reWriter.eraseOp(op);
     return success();
@@ -89,9 +92,8 @@ struct LLVMIntermediateLoweringPass
   using LLVMIntermediateLoweringPassBase::LLVMIntermediateLoweringPassBase;
 
   void runOnOperation() override {
-    ConversionTarget target(getContext());
+    LLVMConversionTarget target(getContext());
 
-    target.addLegalDialect<LLVM::LLVMDialect>();
     target.addLegalOp<ModuleOp>();
 
     LLVMTypeConverter TC(&getContext());
@@ -99,6 +101,7 @@ struct LLVMIntermediateLoweringPass
     RewritePatternSet patterns(&getContext());
     arith::populateArithToLLVMConversionPatterns(TC, patterns);
     populateFinalizeMemRefToLLVMConversionPatterns(TC, patterns);
+    populateFuncToLLVMConversionPatterns(TC, patterns);
     patterns.add<OutputOpLoweringPattern>(&getContext());
 
     if (failed(

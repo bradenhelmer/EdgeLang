@@ -2,6 +2,7 @@
 // ~~~~~~~~~~~~~
 // Handles the generation of Edge MLIR.
 #include <Edge/Middleend.h>
+#include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/IR/MLIRContext.h>
 
 namespace edge {
@@ -10,13 +11,26 @@ mlir::ModuleOp MLIRGenerator::genModuleOp(ProgramAST &ast) {
   theModule = mlir::ModuleOp::create(builder.getUnknownLoc());
   llvm::ScopedHashTableScope<llvm::StringRef, mlir::Value> globalScope(
       symbolTable);
+
   builder.setInsertionPointToStart(theModule.getBody());
+
+  // Create main function
+  mlir::FunctionType fType = builder.getFunctionType({}, {});
+  mlir::func::FuncOp mainFunction =
+      mlir::func::FuncOp::create(builder.getUnknownLoc(), "main", fType);
+  mainFunction.setPublic();
+  theModule.push_back(mainFunction);
+
+  mlir::Block *block = mainFunction.addEntryBlock();
+  builder.setInsertionPointToStart(block);
 
   for (AssignStmt *AE : ast.getAssignExprs()) {
     genAssignOp(*AE);
   }
 
   genOutputOp(ast.getOutputStmt());
+
+  builder.create<mlir::func::ReturnOp>(builder.getUnknownLoc());
 
   return theModule;
 }

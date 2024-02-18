@@ -4,6 +4,7 @@
 #include <Edge/Common.h>
 #include <Edge/Conversion/Edge/Passes.h>
 #include <Edge/Dialect/Edge/EdgeDialect.h>
+#include <mlir/Dialect/Func/IR/FuncOps.h>
 
 #include <iostream>
 using namespace mlir;
@@ -170,18 +171,6 @@ struct RefOpLoweringPattern : public OpConversionPattern<RefOp> {
   }
 };
 
-struct OutputOpLoweringPattern : public OpConversionPattern<OutputOp> {
-  using OpConversionPattern<OutputOp>::OpConversionPattern;
-
-  LogicalResult matchAndRewrite(
-      OutputOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &reWriter) const override {
-    reWriter.updateRootInPlace(op,
-                               [&] { op->setOperands(adaptor.getOperands()); });
-    return success();
-  }
-};
-
 struct IntermediateEdgeLoweringPass
     : public impl::IntermediateEdgeLoweringPassBase<
           IntermediateEdgeLoweringPass> {
@@ -203,7 +192,8 @@ struct IntermediateEdgeLoweringPass
   void runOnOperation() override {
     ConversionTarget target(getContext());
 
-    target.addLegalDialect<arith::ArithDialect, memref::MemRefDialect>();
+    target.addLegalDialect<func::FuncDialect, arith::ArithDialect,
+                           memref::MemRefDialect>();
 
     // Marking op legality
     target.addIllegalDialect<EdgeDialect>();
