@@ -53,9 +53,7 @@ void Toolchain::executeToolchain() {
   mlir::registerBuiltinDialectTranslation(*module->getContext());
   mlir::registerLLVMDialectTranslation(*module->getContext());
 
-  /* auto llvmModule = mlir::translateModuleToLLVMIR(*module, llvmCtx); */
-  /* module->dump(); */
-  /* llvmModule->print(llvm::outs(), nullptr); */
+  auto llvmModule = mlir::translateModuleToLLVMIR(*module, llvmCtx);
 
   auto optPipeline = mlir::makeOptimizingTransformer(0, 0, nullptr);
   mlir::ExecutionEngineOptions opts;

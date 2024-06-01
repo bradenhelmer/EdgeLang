@@ -20,19 +20,24 @@ namespace edge {
 #define GEN_PASS_DEF_LLVMINTERMEDIATELOWERINGPASS
 #include <Edge/Conversion/Edge/Passes.h.inc>
 
+static LLVM::LLVMFunctionType getPrintfType(MLIRContext *context) {
+  auto llvmI32Ty = IntegerType::get(context, 32);
+  auto llvmPtrTy = LLVM::LLVMPointerType::get(context);
+  auto llvmFnType = LLVM::LLVMFunctionType::get(llvmI32Ty, llvmPtrTy,
+                                                /*isVarArg=*/true);
+  return llvmFnType;
+}
+
 static FlatSymbolRefAttr retrievePrintf(PatternRewriter &reWriter,
                                         ModuleOp module) {
   MLIRContext *ctx = module.getContext();
   if (module.lookupSymbol<LLVM::LLVMFuncOp>("printf"))
     return SymbolRefAttr::get(ctx, "printf");
 
-  auto llvmI32Ty = IntegerType::get(ctx, 32);
-  auto llvmI8PtrTy = LLVM::LLVMPointerType::get(IntegerType::get(ctx, 8));
-  auto llvmFnType = LLVM::LLVMFunctionType::get(llvmI32Ty, llvmI8PtrTy, true);
-
   PatternRewriter::InsertionGuard insertGuard(reWriter);
   reWriter.setInsertionPointToStart(module.getBody());
-  reWriter.create<LLVM::LLVMFuncOp>(module.getLoc(), "printf", llvmFnType);
+  reWriter.create<LLVM::LLVMFuncOp>(module.getLoc(), "printf",
+                                    getPrintfType(module.getContext()));
   return SymbolRefAttr::get(ctx, "printf");
 }
 
@@ -56,8 +61,7 @@ static Value getOrCreateGlobalString(Location loc, OpBuilder &builder,
   Value cst0 = builder.create<LLVM::ConstantOp>(loc, builder.getI64Type(),
                                                 builder.getIndexAttr(0));
   return builder.create<LLVM::GEPOp>(
-      loc,
-      LLVM::LLVMPointerType::get(IntegerType::get(builder.getContext(), 8)),
+      loc, LLVM::LLVMPointerType::get(builder.getContext()), global.getType(),
       globalPtr, ArrayRef<Value>({cst0, cst0}));
 }
 
@@ -77,8 +81,8 @@ struct OutputOpLoweringPattern : public OpConversionPattern<OutputOp> {
 
     auto outputOp = cast<OutputOp>(op);
 
-    reWriter.create<func::CallOp>(
-        loc, printf, reWriter.getIntegerType(32),
+    auto v = reWriter.create<LLVM::CallOp>(
+        loc, getPrintfType(parentModule.getContext()), printf,
         ArrayRef<Value>({formatSpecifierCst, outputOp.getOperand()}));
 
     reWriter.eraseOp(op);

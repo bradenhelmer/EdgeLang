@@ -44,7 +44,7 @@ struct ConstantOpLoweringPattern : public OpConversionPattern<ConstantOp> {
   LogicalResult matchAndRewrite(
       ConstantOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &reWriter) const override {
-    TypeConverter *TC = getTypeConverter();
+    const TypeConverter *TC = getTypeConverter();
     mlir::Type newType = TC->convertType(op.getType());
     if (!newType) return failure();
     auto newAttr = IntegerAttr::get(newType, op.getValue());
