@@ -24,7 +24,23 @@
 
 namespace edge {
 
-void Toolchain::executeToolchain() {
+void Toolchain::executeLLVMToolChain() {
+  ProgramAST *AST = new ProgramAST();
+  if (!parser->parseProgram(AST)) {
+    llvm::errs() << "Error parsing AST!\n";
+    exit(1);
+  }
+
+  llvm::LLVMContext context;
+  LLVMGenerator generator(context);
+  generator.setModuleFilename(fileName);
+
+  const llvm::Module &module = generator.codeGenModule(*AST);
+
+  delete AST;
+}
+
+void Toolchain::executeMLIRToolchain() {
   ProgramAST *AST = new ProgramAST();
   bool parse = parser->parseProgram(AST);
 
@@ -46,17 +62,12 @@ void Toolchain::executeToolchain() {
     module.get().emitError("Module verification error!");
   }
 
-  // LLVM
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
-  llvm::LLVMContext llvmCtx;
   mlir::registerBuiltinDialectTranslation(*module->getContext());
   mlir::registerLLVMDialectTranslation(*module->getContext());
 
-  auto llvmModule = mlir::translateModuleToLLVMIR(*module, llvmCtx);
-
   auto optPipeline = mlir::makeOptimizingTransformer(0, 0, nullptr);
-  mlir::ExecutionEngineOptions opts;
   auto maybeEngine =
       mlir::ExecutionEngine::create(*module, {.transformer = optPipeline});
 

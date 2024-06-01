@@ -9,7 +9,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_BUILD_TYPE "Debug")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++ -fno-rtti")
 
 # bin aliases
 set(EXE ${CMAKE_BINARY_DIR}/edge)
@@ -17,7 +17,7 @@ set(DBG gdb)
 set(VALGRIND valgrind)
 
 set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
-set(LLVM_LINK_COMPONENTS Core Support nativecodegen OrcJIT JITLink)
+set(LLVM_LINK_COMPONENTS Core Support IRReader IRPrinter)
 
 # Source Files
 set(LIB_DIR "${CMAKE_SOURCE_DIR}/lib")
@@ -26,6 +26,7 @@ file(GLOB_RECURSE HEADERS "include/Edge/*.h")
 
 # LLVM / MLIR
 find_package(MLIR REQUIRED CONFIG)
+find_package(LLVM REQUIRED CONFIG)
 
 # Load TableGen and LLVM modules.
 include(AddLLVM)
@@ -33,6 +34,7 @@ include(TableGen)
 # Add MLIR dir path to cmake module path.
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 include(AddMLIR)
+
 
 include_directories(${MLIR_INCLUDE_DIRS})
 include_directories(${LLVM_INCLUDE_DIRS})
@@ -62,7 +64,7 @@ add_dependencies(edgelib EdgePasses EdgeIR)
 # Targets
 add_custom_target(
   run
-  COMMAND ${EXE} ${CMAKE_SOURCE_DIR}/test_file.edge
+  COMMAND ${EXE} ${CMAKE_SOURCE_DIR}/test_file.edge --cs llvm
   DEPENDS edge)
 add_custom_target(format COMMAND clang-format -i ${SOURCES} ${HEADERS})
 add_custom_target(

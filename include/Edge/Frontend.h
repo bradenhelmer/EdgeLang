@@ -179,7 +179,7 @@ class ProgramAST {
     exprList.push_back(std::move(assignExpr));
   }
   void attachOutputStmt(OutputStmt *stmt) { output = std::move(stmt); }
-  llvm::SmallVector<AssignStmt *> &getAssignExprs() { return exprList; }
+  llvm::SmallVector<AssignStmt *> &getAssignStmts() { return exprList; }
   OutputStmt &getOutputStmt() { return *output; }
 };
 

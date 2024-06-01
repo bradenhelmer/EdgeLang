@@ -28,7 +28,8 @@ class Toolchain {
     delete parser;
   }
 
-  void executeToolchain();
+  void executeMLIRToolchain();
+  void executeLLVMToolChain();
 
   const char *getFileName() const { return fileName; }
 };

@@ -24,7 +24,7 @@ mlir::ModuleOp MLIRGenerator::genModuleOp(ProgramAST &ast) {
   mlir::Block *block = mainFunction.addEntryBlock();
   builder.setInsertionPointToStart(block);
 
-  for (AssignStmt *AE : ast.getAssignExprs()) {
+  for (AssignStmt *AE : ast.getAssignStmts()) {
     genAssignOp(*AE);
   }
 
@@ -100,13 +100,50 @@ mlir::Value MLIRGenerator::genBinOp(BinaryOpExpr &binOp) {
 mlir::Value MLIRGenerator::genExpr(Expr &expr) {
   switch (expr.getType()) {
     case Expr::INTEGER_LITERAL:
-      return genConstantOp(dynamic_cast<IntegerLiteralExpr &>(expr));
+      return genConstantOp(static_cast<IntegerLiteralExpr &>(expr));
     case Expr::ASSIGNEE_REF:
-      return genRefOp(dynamic_cast<AssigneeReferenceExpr &>(expr));
+      return genRefOp(static_cast<AssigneeReferenceExpr &>(expr));
     case Expr::BINOP:
-      return genBinOp(dynamic_cast<BinaryOpExpr &>(expr));
+      return genBinOp(static_cast<BinaryOpExpr &>(expr));
     default:
       return nullptr;
   }
 }
+
+const llvm::Module &LLVMGenerator::codeGenModule(ProgramAST &ast) {
+  /*llvm::ScopedHashTableScope<llvm::StringRef, llvm::Value> globalScope(*/
+  /*    symbolTable);*/
+
+  // Set up main function.
+  llvm::FunctionType *MT = llvm::FunctionType::get(
+      llvm::Type::getInt32Ty(ctx),
+      {llvm::Type::getInt32Ty(ctx),
+       llvm::PointerType::get(
+           llvm::PointerType::get(llvm::Type::getInt8Ty(ctx), 0), 0)},
+      false);
+
+  llvm::Function *MF = llvm::Function::Create(
+      MT, llvm::Function::LinkageTypes::ExternalLinkage, "main", theModule);
+
+  MF->args().begin()[0].setName("argc");
+  MF->args().begin()[1].setName("argv");
+
+  llvm::BasicBlock *BB = llvm::BasicBlock::Create(ctx, "main_block", MF);
+  builder.SetInsertPoint(BB);
+
+  for (const auto &AS : ast.getAssignStmts()) {
+    codeGenAssignStmt(*AS);
+  }
+
+  theModule.print(llvm::outs(), nullptr);
+
+  return theModule;
+}
+
+void LLVMGenerator::codeGenAssignStmt(const AssignStmt &AS) {
+  llvm::StringRef assignee = AS.getAssignee();
+  llvm::AllocaInst *alloca =
+      builder.CreateAlloca(llvm::IntegerType::get(ctx, 64), nullptr, assignee);
+}
+
 }  // namespace edge
