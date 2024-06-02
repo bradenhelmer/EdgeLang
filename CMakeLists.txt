@@ -13,7 +13,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++ -fno-rtti")
 
 # bin aliases
 set(EXE ${CMAKE_BINARY_DIR}/edge)
-set(DBG gdb)
+set(DBG lldb)
 set(VALGRIND valgrind)
 
 set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
@@ -34,7 +34,6 @@ include(TableGen)
 # Add MLIR dir path to cmake module path.
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 include(AddMLIR)
-
 
 include_directories(${MLIR_INCLUDE_DIRS})
 include_directories(${LLVM_INCLUDE_DIRS})
@@ -69,11 +68,11 @@ add_custom_target(
 add_custom_target(format COMMAND clang-format -i ${SOURCES} ${HEADERS})
 add_custom_target(
   dbg
-  COMMAND ${DBG} -q --args ${EXE} ${CMAKE_SOURCE_DIR}/test_file.edge
+  COMMAND ${DBG} -- ${EXE} --cs llvm ${CMAKE_SOURCE_DIR}/test_file.edge
   DEPENDS edge)
 add_custom_target(
   leak_check
-  COMMAND ${VALGRIND} --leak-check=full ${EXE}
+  COMMAND ${VALGRIND} --leak-check=full --track-origins=yes ${EXE} --cs llvm
           ${CMAKE_SOURCE_DIR}/test_file.edge
   DEPENDS edge)
 

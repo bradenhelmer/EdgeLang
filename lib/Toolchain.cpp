@@ -33,9 +33,10 @@ void Toolchain::executeLLVMToolChain() {
 
   llvm::LLVMContext context;
   LLVMGenerator generator(context);
-  generator.setModuleFilename(fileName);
 
-  const llvm::Module &module = generator.codeGenModule(*AST);
+  llvm::Module &module = generator.codeGenModule(*AST);
+  module.setSourceFileName(fileName);
+  module.print(llvm::outs(), nullptr);
 
   delete AST;
 }

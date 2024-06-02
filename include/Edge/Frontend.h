@@ -98,7 +98,7 @@ class Expr {
   Expr(ProgramAST *ast) : ast(ast) {}
   virtual ~Expr() = default;
   enum ExprType : uint8_t { EXPR, INTEGER_LITERAL, ASSIGNEE_REF, BINOP };
-  virtual ExprType getType() { return EXPR; }
+  virtual ExprType getType() const { return EXPR; }
 };
 
 class IntegerLiteralExpr : public Expr {
@@ -109,7 +109,7 @@ class IntegerLiteralExpr : public Expr {
   IntegerLiteralExpr(ProgramAST *ast, int64_t value)
       : Expr(ast), value(value) {}
   int64_t getValue() const { return value; }
-  ExprType getType() override { return INTEGER_LITERAL; }
+  ExprType getType() const override { return INTEGER_LITERAL; }
 };
 
 class AssigneeReferenceExpr : public Expr {
@@ -120,7 +120,7 @@ class AssigneeReferenceExpr : public Expr {
   AssigneeReferenceExpr(ProgramAST *ast, const llvm::StringRef &assignee)
       : Expr(ast), assignee(assignee) {}
   const llvm::StringRef &getAssignee() const { return assignee; }
-  ExprType getType() override { return ASSIGNEE_REF; }
+  ExprType getType() const override { return ASSIGNEE_REF; }
 };
 
 class BinaryOpExpr : public Expr {
@@ -136,10 +136,10 @@ class BinaryOpExpr : public Expr {
     delete LHS;
     delete RHS;
   }
-  ExprType getType() override { return BINOP; }
-  TokenKind getOp() { return op; }
-  Expr &getLHS() { return *LHS; }
-  Expr &getRHS() { return *RHS; }
+  ExprType getType() const override { return BINOP; }
+  TokenKind getOp() const { return op; }
+  Expr &getLHS() const { return *LHS; }
+  Expr &getRHS() const { return *RHS; }
 };
 
 class AssignStmt {
@@ -153,7 +153,7 @@ class AssignStmt {
       : ast(ast), assignee(assignee), expr(std::move(expr)) {}
   ~AssignStmt() { delete expr; }
   const llvm::StringRef &getAssignee() const { return assignee; }
-  Expr &getExpr() { return *expr; }
+  Expr &getExpr() const { return *expr; }
 };
 
 class OutputStmt {
@@ -164,7 +164,7 @@ class OutputStmt {
  public:
   OutputStmt(ProgramAST *ast, Expr *expr) : ast(ast), expr(std::move(expr)) {}
   ~OutputStmt() { delete expr; }
-  Expr &getExpr() { return *expr; }
+  Expr &getExpr() const { return *expr; }
 };
 
 class ProgramAST {

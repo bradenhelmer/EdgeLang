@@ -110,9 +110,14 @@ mlir::Value MLIRGenerator::genExpr(Expr &expr) {
   }
 }
 
-const llvm::Module &LLVMGenerator::codeGenModule(ProgramAST &ast) {
-  /*llvm::ScopedHashTableScope<llvm::StringRef, llvm::Value> globalScope(*/
-  /*    symbolTable);*/
+llvm::Module &LLVMGenerator::codeGenModule(ProgramAST &ast) {
+  // Declare printf
+  llvm::FunctionType *printfType = llvm::FunctionType::get(
+      llvm::Type::getInt32Ty(ctx),
+      {llvm::PointerType::get(llvm::Type::getInt8Ty(ctx), 0)}, true);
+  llvm::Function *printf = llvm::Function::Create(
+      printfType, llvm::Function::LinkageTypes::ExternalLinkage, "printf",
+      theModule);
 
   // Set up main function.
   llvm::FunctionType *MT = llvm::FunctionType::get(
@@ -124,6 +129,7 @@ const llvm::Module &LLVMGenerator::codeGenModule(ProgramAST &ast) {
 
   llvm::Function *MF = llvm::Function::Create(
       MT, llvm::Function::LinkageTypes::ExternalLinkage, "main", theModule);
+  mainFunction = MF;
 
   MF->args().begin()[0].setName("argc");
   MF->args().begin()[1].setName("argv");
@@ -135,15 +141,90 @@ const llvm::Module &LLVMGenerator::codeGenModule(ProgramAST &ast) {
     codeGenAssignStmt(*AS);
   }
 
-  theModule.print(llvm::outs(), nullptr);
+  codeGenOutputStmt(ast.getOutputStmt());
+  builder.CreateRetVoid();
 
   return theModule;
 }
 
 void LLVMGenerator::codeGenAssignStmt(const AssignStmt &AS) {
+  llvm::AllocaInst *alloca;
+
   llvm::StringRef assignee = AS.getAssignee();
-  llvm::AllocaInst *alloca =
-      builder.CreateAlloca(llvm::IntegerType::get(ctx, 64), nullptr, assignee);
+  llvm::Value *expr = codeGenExpr(AS.getExpr());
+
+  if (!(alloca = static_cast<llvm::AllocaInst *>(
+            builder.GetInsertBlock()->getValueSymbolTable()->lookup(
+                assignee)))) {
+    const auto &prev = builder.GetInsertBlock();
+    builder.SetInsertPointPastAllocas(mainFunction);
+    alloca = builder.CreateAlloca(llvm::IntegerType::get(ctx, 64), nullptr,
+                                  assignee);
+    builder.SetInsertPoint(prev);
+  }
+
+  builder.CreateStore(expr, alloca);
+}
+
+llvm::Value *LLVMGenerator::codeGenExpr(const Expr &E) {
+  switch (E.getType()) {
+    case Expr::INTEGER_LITERAL:
+      return codeGenIntegerLiteral(static_cast<const IntegerLiteralExpr &>(E));
+    case Expr::ASSIGNEE_REF:
+      return codeGenAssigneeReference(
+          static_cast<const AssigneeReferenceExpr &>(E));
+    case Expr::BINOP:
+      return codeGenBinaryOperation(static_cast<const BinaryOpExpr &>(E));
+    default:
+      return nullptr;
+  }
+}
+
+llvm::Value *LLVMGenerator::codeGenIntegerLiteral(
+    const IntegerLiteralExpr &IL) {
+  return llvm::ConstantInt::get(llvm::IntegerType::get(ctx, 64), IL.getValue());
+}
+
+llvm::Value *LLVMGenerator::codeGenAssigneeReference(
+    const AssigneeReferenceExpr &AR) {
+  llvm::AllocaInst *ref = static_cast<llvm::AllocaInst *>(
+      mainFunction->getValueSymbolTable()->lookup(AR.getAssignee()));
+  if (!ref) {
+    llvm::errs() << "Unknown reference to assignee " << AR.getAssignee()
+                 << " \n";
+    exit(1);
+  }
+  return builder.CreateLoad(ref->getAllocatedType(), ref);
+}
+
+llvm::Value *LLVMGenerator::codeGenBinaryOperation(const BinaryOpExpr &BO) {
+  llvm::Value *LHS = codeGenExpr(BO.getLHS());
+  llvm::Value *RHS = codeGenExpr(BO.getRHS());
+  if (!LHS || !RHS) {
+    llvm::errs()
+        << "Error generating left or right side of binary operation!\n";
+    exit(1);
+  }
+
+  switch (BO.getOp()) {
+    case ADD:
+      return builder.CreateAdd(LHS, RHS);
+    case SUB:
+      return builder.CreateSub(LHS, RHS);
+    case MUL:
+      return builder.CreateMul(LHS, RHS);
+    case DIV:
+      return builder.CreateSDiv(LHS, RHS);
+    default:
+      return nullptr;
+  }
+}
+
+void LLVMGenerator::codeGenOutputStmt(const OutputStmt &OS) {
+  const auto &fmt =
+      builder.CreateGlobalStringPtr("Result: %l\n", "fmt_spec", 0, &theModule);
+  builder.CreateCall(theModule.getFunction("printf"),
+                     {fmt, codeGenExpr(OS.getExpr())});
 }
 
 }  // namespace edge

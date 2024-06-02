@@ -9,6 +9,7 @@
 #include <llvm/ADT/ScopedHashTable.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/ValueSymbolTable.h>
 #include <mlir/IR/Builders.h>
 #include <mlir/IR/SymbolTable.h>
 
@@ -41,24 +42,22 @@ class LLVMGenerator {
   llvm::IRBuilder<> builder;
   llvm::Module theModule;
   llvm::LLVMContext &ctx;
-  llvm::ScopedHashTable<llvm::StringRef, llvm::Value> symbolTable;
-  llvm::AllocaInst *lastAlloca;
-
-  void codeGenAssignStmt(const AssignStmt &AS);
+  llvm::Function *mainFunction;
 
   // IR Gen
+  void codeGenAssignStmt(const AssignStmt &AS);
+  llvm::Value *codeGenExpr(const Expr &E);
+  llvm::Value *codeGenIntegerLiteral(const IntegerLiteralExpr &IL);
+  llvm::Value *codeGenAssigneeReference(const AssigneeReferenceExpr &AR);
+  llvm::Value *codeGenBinaryOperation(const BinaryOpExpr &BO);
+  void codeGenOutputStmt(const OutputStmt &OS);
+
  public:
   LLVMGenerator(llvm::LLVMContext &context)
-      : builder(context),
-        theModule("EdgeModule", context),
-        ctx(context),
-        lastAlloca(nullptr) {
+      : builder(context), theModule("EdgeModule", context), ctx(context) {
     std::puts("Initializing LLVM Generator...");
   }
-  void setModuleFilename(llvm::StringRef fileName) {
-    theModule.setSourceFileName(fileName);
-  }
-  const llvm::Module &codeGenModule(ProgramAST &ast);
+  llvm::Module &codeGenModule(ProgramAST &ast);
 };
 
 }  // namespace edge
