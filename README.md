@@ -4,8 +4,8 @@ EdgeLang is a simple language supporting basic varaible creation and arithmetic 
 
 ## Build Instructions
 System Requirements:
--  [LLVM/Clang 17.0.6 with MLIR](https://github.com/llvm/llvm-project)
--  <strong>Linux Only</strong> (Currently uses linux sys calls for fast file reads)
+-  [LLVM/Clang with MLIR](https://github.com/llvm/llvm-project)
+-  <strong>Linux</strong> (Currently uses linux sys calls for fast file reads)
 -  CMake 3.22 or higher
 
 ```shell
@@ -55,5 +55,9 @@ Initializing MLIR Generator...
 Executing test_file.edge
 Result: 72
 ```
+## Compilation Options
+You may specify a compilation strategy with the `--cs` option. Currently you can provide `llvm | mlir` (default is `mlir`). Example:
+
+`edge --cs llvm <program>`
   
     
