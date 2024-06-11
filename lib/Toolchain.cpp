@@ -7,8 +7,12 @@
 #include <Edge/Frontend.h>
 #include <Edge/Middleend.h>
 #include <Edge/Toolchain.h>
+#include <llvm/ExecutionEngine/Orc/LLJIT.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Support/Error.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
@@ -22,6 +26,8 @@
 #include <mlir/Target/LLVMIR/ModuleTranslation.h>
 #include <mlir/Transforms/Passes.h>
 
+llvm::ExitOnError exiter;
+
 namespace edge {
 
 void Toolchain::executeLLVMToolChain() {
@@ -31,12 +37,27 @@ void Toolchain::executeLLVMToolChain() {
     exit(1);
   }
 
-  llvm::LLVMContext context;
-  LLVMGenerator generator(context);
+  auto context = std::make_unique<llvm::LLVMContext>();
+  LLVMGenerator generator(*context);
 
-  llvm::Module &module = generator.codeGenModule(*AST);
-  module.setSourceFileName(fileName);
-  module.print(llvm::outs(), nullptr);
+  auto module = generator.codeGenModule(*AST);
+  module->setSourceFileName(fileName);
+
+  if (llvm::verifyModule(*module, &llvm::outs())) {
+    llvm::errs() << "Error with IR generation!\n";
+    delete AST;
+    exit(1);
+  }
+
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+
+  llvm::orc::ThreadSafeModule TSM(std::move(module), std::move(context));
+  auto JIT = exiter(llvm::orc::LLJITBuilder().create());
+  exiter(JIT->addIRModule(std::move(TSM)));
+  auto mainf = exiter(JIT->lookup("main"));
+  int (*maint)(int, char **) = mainf.toPtr<int(int, char **)>();
+  int result = maint(0, nullptr);
 
   delete AST;
 }

@@ -4,6 +4,7 @@
 
 #include <Edge/Toolchain.h>
 #include <llvm/Support/CommandLine.h>
+#include <llvm/Support/InitLLVM.h>
 
 #include <iostream>
 
@@ -25,6 +26,8 @@ static cl::opt<enum CompilationStrategy> CompilationStrategy(
 }  // namespace
 
 int main(int argc, char **argv) {
+  llvm::InitLLVM X(argc, argv);
+
   cl::ParseCommandLineOptions(argc, argv, "EdgeLang Compiler");
 
   Toolchain *TC = new Toolchain(InputFilename.getValue().c_str());

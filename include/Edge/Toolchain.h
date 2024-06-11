@@ -5,6 +5,7 @@
 #define EDGE_TOOLCHAIN_H
 
 #include <Edge/Frontend.h>
+#include <llvm/IR/Module.h>
 
 namespace edge {
 

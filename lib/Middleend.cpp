@@ -110,15 +110,7 @@ mlir::Value MLIRGenerator::genExpr(Expr &expr) {
   }
 }
 
-llvm::Module &LLVMGenerator::codeGenModule(ProgramAST &ast) {
-  // Declare printf
-  llvm::FunctionType *printfType = llvm::FunctionType::get(
-      llvm::Type::getInt32Ty(ctx),
-      {llvm::PointerType::get(llvm::Type::getInt8Ty(ctx), 0)}, true);
-  llvm::Function *printf = llvm::Function::Create(
-      printfType, llvm::Function::LinkageTypes::ExternalLinkage, "printf",
-      theModule);
-
+std::unique_ptr<llvm::Module> LLVMGenerator::codeGenModule(ProgramAST &ast) {
   // Set up main function.
   llvm::FunctionType *MT = llvm::FunctionType::get(
       llvm::Type::getInt32Ty(ctx),
@@ -128,7 +120,7 @@ llvm::Module &LLVMGenerator::codeGenModule(ProgramAST &ast) {
       false);
 
   llvm::Function *MF = llvm::Function::Create(
-      MT, llvm::Function::LinkageTypes::ExternalLinkage, "main", theModule);
+      MT, llvm::Function::LinkageTypes::ExternalLinkage, "main", *theModule);
   mainFunction = MF;
 
   MF->args().begin()[0].setName("argc");
@@ -142,9 +134,9 @@ llvm::Module &LLVMGenerator::codeGenModule(ProgramAST &ast) {
   }
 
   codeGenOutputStmt(ast.getOutputStmt());
-  builder.CreateRetVoid();
+  builder.CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(ctx), 0));
 
-  return theModule;
+  return std::move(theModule);
 }
 
 void LLVMGenerator::codeGenAssignStmt(const AssignStmt &AS) {
@@ -221,9 +213,13 @@ llvm::Value *LLVMGenerator::codeGenBinaryOperation(const BinaryOpExpr &BO) {
 }
 
 void LLVMGenerator::codeGenOutputStmt(const OutputStmt &OS) {
-  const auto &fmt =
-      builder.CreateGlobalStringPtr("Result: %l\n", "fmt_spec", 0, &theModule);
-  builder.CreateCall(theModule.getFunction("printf"),
+  // Get printf
+  llvm::FunctionType *pf_type = llvm::FunctionType::get(
+      llvm::Type::getInt32Ty(ctx), {llvm::PointerType::get(ctx, 0)}, true);
+
+  const auto &fmt = builder.CreateGlobalStringPtr("Result: %d\n", "fmt_spec", 0,
+                                                  theModule.get());
+  builder.CreateCall(theModule->getOrInsertFunction("printf", pf_type),
                      {fmt, codeGenExpr(OS.getExpr())});
 }
 

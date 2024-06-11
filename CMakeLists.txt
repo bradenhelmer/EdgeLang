@@ -16,6 +16,11 @@ set(EXE ${CMAKE_BINARY_DIR}/edge)
 set(DBG lldb)
 set(VALGRIND valgrind)
 
+if ((CMAKE_BUILD_TYPE STREQUAL "Debug") AND (DEFINED ENV{LLVM_DEBUG_BUILD}))
+	set(MLIR_DIR "$ENV{LLVM_DEBUG_BUILD}/lib/cmake/mlir")
+	set(LLVM_DIR "$ENV{LLVM_DEBUG_BUILD}/lib/cmake/llvm")
+endif()
+
 set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
 set(LLVM_LINK_COMPONENTS Core Support IRReader IRPrinter)
 

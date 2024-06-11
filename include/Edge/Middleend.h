@@ -40,7 +40,7 @@ class MLIRGenerator {
 class LLVMGenerator {
  private:
   llvm::IRBuilder<> builder;
-  llvm::Module theModule;
+  std::unique_ptr<llvm::Module> theModule;
   llvm::LLVMContext &ctx;
   llvm::Function *mainFunction;
 
@@ -54,10 +54,12 @@ class LLVMGenerator {
 
  public:
   LLVMGenerator(llvm::LLVMContext &context)
-      : builder(context), theModule("EdgeModule", context), ctx(context) {
+      : builder(context),
+        theModule(std::make_unique<llvm::Module>("EdgeModule", context)),
+        ctx(context) {
     std::puts("Initializing LLVM Generator...");
   }
-  llvm::Module &codeGenModule(ProgramAST &ast);
+  std::unique_ptr<llvm::Module> codeGenModule(ProgramAST &ast);
 };
 
 }  // namespace edge
