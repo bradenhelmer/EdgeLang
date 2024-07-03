@@ -4,6 +4,7 @@
 // 1. Edge Dialect
 #ifndef EDGE_MIDDLEEND_H
 #define EDGE_MIDDLEEND_H
+#include <Edge/Assembly.h>
 #include <Edge/Dialect/Edge/EdgeDialect.h>
 #include <Edge/Frontend.h>
 #include <llvm/ADT/ScopedHashTable.h>
@@ -60,6 +61,16 @@ class LLVMGenerator {
     std::puts("Initializing LLVM Generator...");
   }
   std::unique_ptr<llvm::Module> codeGenModule(ProgramAST &ast);
+};
+
+class NativeGenerator {
+ private:
+  std::unique_ptr<llvm::Module> module;
+
+ public:
+  NativeGenerator(std::unique_ptr<llvm::Module> module)
+      : module(std::move(module)) {}
+  std::unique_ptr<AssemblyModule> lowerLLVMToAssembly();
 };
 
 }  // namespace edge

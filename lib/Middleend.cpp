@@ -1,6 +1,7 @@
 // Middleend.cpp
 // ~~~~~~~~~~~~~
 // Handles the generation of Edge MLIR.
+#include <Edge/Assembly.h>
 #include <Edge/Middleend.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/IR/MLIRContext.h>
@@ -221,6 +222,15 @@ void LLVMGenerator::codeGenOutputStmt(const OutputStmt &OS) {
                                                   theModule.get());
   builder.CreateCall(theModule->getOrInsertFunction("printf", pf_type),
                      {fmt, codeGenExpr(OS.getExpr())});
+}
+
+std::unique_ptr<AssemblyModule> NativeGenerator::lowerLLVMToAssembly() {
+  auto AM = std::make_unique<AssemblyModule>();
+  
+  // 1. Get 'main'
+  llvm::Function *MF = module->getFunction("main");
+
+  return AM;
 }
 
 }  // namespace edge

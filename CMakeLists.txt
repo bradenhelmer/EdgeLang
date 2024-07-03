@@ -68,16 +68,16 @@ add_dependencies(edgelib EdgePasses EdgeIR)
 # Targets
 add_custom_target(
   run
-  COMMAND ${EXE} ${CMAKE_SOURCE_DIR}/test_file.edge --cs llvm
+  COMMAND ${EXE} ${CMAKE_SOURCE_DIR}/test_file.edge --cs native
   DEPENDS edge)
 add_custom_target(format COMMAND clang-format -i ${SOURCES} ${HEADERS})
 add_custom_target(
   dbg
-  COMMAND ${DBG} -- ${EXE} --cs llvm ${CMAKE_SOURCE_DIR}/test_file.edge
+  COMMAND ${DBG} -- ${EXE} --cs native ${CMAKE_SOURCE_DIR}/test_file.edge
   DEPENDS edge)
 add_custom_target(
   leak_check
-  COMMAND ${VALGRIND} --leak-check=full --track-origins=yes ${EXE} --cs llvm
+  COMMAND ${VALGRIND} --leak-check=full --track-origins=yes ${EXE} --cs native
           ${CMAKE_SOURCE_DIR}/test_file.edge
   DEPENDS edge)
 
