@@ -30,7 +30,8 @@ llvm::ExitOnError exiter;
 
 namespace edge {
 
-void Toolchain::executeLLVMToolChain() {
+void Toolchain::executeNativeToolchain() {
+
   ProgramAST *AST = new ProgramAST();
   if (!parser->parseProgram(AST)) {
     llvm::errs() << "Error parsing AST!\n";
@@ -38,9 +39,26 @@ void Toolchain::executeLLVMToolChain() {
   }
 
   auto context = std::make_unique<llvm::LLVMContext>();
-  LLVMGenerator generator(*context);
+  auto module = moduleFromASTQuick(AST, *context);
+  module->print(llvm::outs(), nullptr);
+  module->setSourceFileName(fileName);
 
-  auto module = generator.codeGenModule(*AST);
+  NativeGenerator generator(std::move(module));
+  auto asmModule = generator.lowerLLVMToAssembly();
+  
+
+  delete AST;
+}
+
+void Toolchain::executeLLVMToolchain() {
+  ProgramAST *AST = new ProgramAST();
+  if (!parser->parseProgram(AST)) {
+    llvm::errs() << "Error parsing AST!\n";
+    exit(1);
+  }
+
+  auto context = std::make_unique<llvm::LLVMContext>();
+  auto module = moduleFromASTQuick(AST, *context);
   module->setSourceFileName(fileName);
 
   if (llvm::verifyModule(*module, &llvm::outs())) {

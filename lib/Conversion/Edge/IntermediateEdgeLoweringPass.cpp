@@ -203,7 +203,8 @@ struct IntermediateEdgeLoweringPass
     EdgeTypeConverter converter(&getContext());
     EdgeSymbolTable symTable;
     populateEdgeConversionPatterns(patterns, converter, symTable);
-    if (failed(applyPartialConversion(getOperation(), target,
+	auto op = getOperation();
+    if (failed(applyPartialConversion(op, target,
                                       std::move(patterns)))) {
       signalPassFailure();
     }

@@ -5,6 +5,7 @@
 #define EDGE_TOOLCHAIN_H
 
 #include <Edge/Frontend.h>
+#include <Edge/Middleend.h>
 #include <llvm/IR/Module.h>
 
 namespace edge {
@@ -30,9 +31,15 @@ class Toolchain {
   }
 
   void executeMLIRToolchain();
-  void executeLLVMToolChain();
+  void executeLLVMToolchain();
+  void executeNativeToolchain();
 
   const char *getFileName() const { return fileName; }
+  static std::unique_ptr<llvm::Module> moduleFromASTQuick(
+      ProgramAST *AST, llvm::LLVMContext &ctx) {
+    LLVMGenerator generator(ctx);
+    return std::move(generator.codeGenModule(*AST));
+  }
 };
 
 }  // namespace edge
