@@ -12,6 +12,7 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Passes/PassBuilder.h>
+#include <llvm/Support/CommandLine.h>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
@@ -26,12 +27,42 @@
 #include <mlir/Target/LLVMIR/ModuleTranslation.h>
 #include <mlir/Transforms/Passes.h>
 
-llvm::ExitOnError exiter;
+static llvm::ExitOnError exiter;
+
+namespace cl = llvm::cl;
 
 namespace edge {
 
-void Toolchain::executeNativeToolchain() {
+Toolchain::Toolchain(const char *fileName, CompilationStrategy strategy,
+                     bool shouldEmit)
+    : strategy(strategy), fileName(fileName), shouldEmit(shouldEmit) {
+  initFrontend();
+  if (shouldEmit) {
+    auto FileStr = std::string(fileName);
+    auto raw = FileStr.substr(0, FileStr.find_last_of('.'))
+                   .substr(FileStr.find_first_of('/') + 1);
+    EmitFile =
+        new llvm::raw_fd_ostream(std::filesystem::current_path().string() +
+                                     "/" + raw + getEmitFileSuffix(),
+                                 EC);
+  }
+}
 
+void Toolchain::execute() {
+  switch (strategy) {
+    case CompilationStrategy::NATIVE:
+      executeNativeToolchain();
+      break;
+    case CompilationStrategy::LLVM:
+      executeLLVMToolchain();
+      break;
+    default:
+      executeMLIRToolchain();
+      break;
+  }
+}
+
+void Toolchain::executeNativeToolchain() {
   ProgramAST *AST = new ProgramAST();
   if (!parser->parseProgram(AST)) {
     llvm::errs() << "Error parsing AST!\n";
@@ -39,13 +70,11 @@ void Toolchain::executeNativeToolchain() {
   }
 
   auto context = std::make_unique<llvm::LLVMContext>();
-  auto module = moduleFromASTQuick(AST, *context);
-  module->print(llvm::outs(), nullptr);
+  auto module = llvmModuleFromASTQuick(AST, *context);
   module->setSourceFileName(fileName);
 
   NativeGenerator generator(std::move(module));
-  auto asmModule = generator.lowerLLVMToAssembly();
-  
+  generator.lowerLLVMToAssembly();
 
   delete AST;
 }
@@ -58,8 +87,12 @@ void Toolchain::executeLLVMToolchain() {
   }
 
   auto context = std::make_unique<llvm::LLVMContext>();
-  auto module = moduleFromASTQuick(AST, *context);
+  auto module = llvmModuleFromASTQuick(AST, *context);
   module->setSourceFileName(fileName);
+
+  if (shouldEmit) {
+    module->print(*EmitFile, nullptr);
+  }
 
   if (llvm::verifyModule(*module, &llvm::outs())) {
     llvm::errs() << "Error with IR generation!\n";
@@ -90,12 +123,34 @@ void Toolchain::executeMLIRToolchain() {
   MLIRGenerator generator(context);
   mlir::OwningOpRef<mlir::ModuleOp> module = generator.genModuleOp(*AST);
 
+  if (shouldEmit) {
+    *EmitFile << "// Module Phase 1: Edge/Func Dialects\n";
+    module->print(*EmitFile);
+    *EmitFile << "\n";
+    EmitFile->flush();
+  }
+
   mlir::PassManager pm = mlir::PassManager::on<mlir::ModuleOp>(&context);
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(edge::createIntermediateEdgeLoweringPass());
+  if (failed(pm.run(module.get()))) {
+    module.get().emitError("Pass error!");
+  }
+  if (shouldEmit) {
+    *EmitFile << "// Module Phase 2: Arith/Func/Memref Dialects\n";
+    module->print(*EmitFile);
+    *EmitFile << "\n";
+    EmitFile->flush();
+  }
+
+  pm.clear();
   pm.addPass(edge::createLLVMIntermediateLoweringPass());
   if (failed(pm.run(module.get()))) {
     module.get().emitError("Pass error!");
+  }
+  if (shouldEmit) {
+    *EmitFile << "// Module Phase 3: LLVM Dialect\n";
+    module->print(*EmitFile);
   }
 
   if (failed(mlir::verify(module.get()))) {
@@ -114,7 +169,6 @@ void Toolchain::executeMLIRToolchain() {
   assert(maybeEngine && "Failed to create execution engine!");
   auto &engine = maybeEngine.get();
 
-  llvm::outs() << "\nExecuting " << fileName << "\n";
   auto invocationResult = engine->invokePacked("main");
 
   if (invocationResult) {

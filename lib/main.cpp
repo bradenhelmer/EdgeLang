@@ -12,40 +12,34 @@
 using namespace edge;
 namespace cl = llvm::cl;
 
+namespace edge {
 static cl::opt<std::string> InputFilename(cl::Positional, cl::Required,
                                           cl::desc("<input file>"));
-namespace {
-enum CompilationStrategy { LLVM, MLIR, NATIVE };
+static cl::opt<bool> Emit(
+    "emit", cl::init(false),
+    cl::desc("Optionally MLIR, LLVM IR, or X86-64 Assembly."));
 
 static cl::opt<enum CompilationStrategy> CompilationStrategy(
-    "cs", cl::init(MLIR),
+    "cs", cl::init(CompilationStrategy::MLIR),
     cl::desc("Which compilation strategy should we choose, LLVM or MLIR."),
-    cl::values(clEnumValN(LLVM, "llvm",
+    cl::values(clEnumValN(CompilationStrategy::LLVM, "llvm",
                           "Compile the program using LLVM only.")),
-    cl::values(clEnumValN(MLIR, "mlir",
+    cl::values(clEnumValN(CompilationStrategy::MLIR, "mlir",
                           "Compile the program using MLIR/LLVM.")),
-    cl::values(clEnumValN(NATIVE, "native",
-                          "Compile the program using LLVM IR without LLVM backend.")));
-}  // namespace
+    cl::values(
+        clEnumValN(CompilationStrategy::NATIVE, "native",
+                   "Compile the program using LLVM IR without LLVM backend.")));
+}  // namespace edge
 
 int main(int argc, char **argv) {
   llvm::InitLLVM X(argc, argv);
 
   cl::ParseCommandLineOptions(argc, argv, "EdgeLang Compiler");
 
-  Toolchain *TC = new Toolchain(InputFilename.getValue().c_str());
+  Toolchain *TC = new Toolchain(InputFilename.getValue().c_str(),
+                                CompilationStrategy, Emit);
 
-  switch (CompilationStrategy) {
-	case NATIVE:
-	  TC->executeNativeToolchain();
-	  break;
-	case LLVM:
-	  TC->executeLLVMToolchain();
-	  break;
-	default:
-	  TC->executeMLIRToolchain();
-	  break;
-  }
+  TC->execute();
 
   delete TC;
   return 0;

@@ -77,7 +77,6 @@ class Lexer {
  public:
   Lexer(const char *fileName)
       : fileName(fileName), sourceCode(mapSourceFile(fileName, fileLength)) {
-    std::puts("Initializing Lexer...");
     bufPtr = sourceCode;
   }
   bool lexToken(Token *out);
@@ -221,10 +220,7 @@ class Parser {
   inline void advance() const { lexer->lexToken(currentToken); }
 
  public:
-  Parser(Lexer *lexer) : lexer(lexer), currentToken(new Token()) {
-    std::puts("Initializing Parser... ");
-    advance();
-  }
+  Parser(Lexer *lexer) : lexer(lexer), currentToken(new Token()) { advance(); }
   ~Parser() { delete currentToken; }
   bool parseProgram(ProgramAST *out);
 };

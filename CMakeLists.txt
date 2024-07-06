@@ -9,10 +9,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_BUILD_TYPE "Debug")
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
-else()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++ -fno-rtti")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
+if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
 endif()
 
 # bin aliases
@@ -72,7 +71,7 @@ add_dependencies(edgelib EdgePasses EdgeIR)
 # Targets
 add_custom_target(
   run
-  COMMAND ${EXE} ${CMAKE_SOURCE_DIR}/test_file.edge --cs native
+  COMMAND ${EXE} ${CMAKE_SOURCE_DIR}/test_file.edge -cs native
   DEPENDS edge)
 add_custom_target(format COMMAND clang-format -i ${SOURCES} ${HEADERS})
 add_custom_target(

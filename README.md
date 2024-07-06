@@ -56,8 +56,17 @@ Executing test_file.edge
 Result: 72
 ```
 ## Compilation Options
-You may specify a compilation strategy with the `--cs` option. Currently you can provide `llvm | mlir` (default is `mlir`). Example:
+1. You may specify a compilation strategy with the `-cs` option:
+    - `mlir` (default): Edge code -> Edge/Func Dialects -> Arith/Func/Memref Dialects -> LLVM Dialect -> JIT compiled with MLIR execution engine.
+    - `llvm`: Edge code -> LLVM IR -> JIT Compiled with LLVM LLJIT
+    - `Native`: Edge code -> LLVM IR -> SelectionDAG-based Instruction Selection -> Register Allocation -> X86-64 Assembly -> ELF Binary
 
-`edge --cs llvm <program>`
+    All strategies utilize the same frontend methods.
+
+    Example:<br>
+    `edge -cs llvm <program>`
   
-    
+2. If you would like to output an IR or assmbly file, use the `-emit` option. This option takes no parameters but the IR file produced is based on the chosen compilation strategy:
+    - `mlir` will produce one file containing three sperate modules corresponding to each stage of the lowering process:
+    - `llvm` will produce an LLVM IR file.
+    - `native` will produce an X86-64 Assembly file.

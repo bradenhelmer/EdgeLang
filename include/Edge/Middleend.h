@@ -4,9 +4,9 @@
 // 1. Edge Dialect
 #ifndef EDGE_MIDDLEEND_H
 #define EDGE_MIDDLEEND_H
-#include <Edge/Assembly.h>
 #include <Edge/Dialect/Edge/EdgeDialect.h>
 #include <Edge/Frontend.h>
+#include <Edge/SelectionDAG.h>
 #include <llvm/ADT/ScopedHashTable.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
@@ -31,9 +31,7 @@ class MLIRGenerator {
   mlir::Value genExpr(Expr &expr);
 
  public:
-  MLIRGenerator(mlir::MLIRContext &context) : builder(&context) {
-    std::puts("Initializing MLIR Generator...");
-  }
+  MLIRGenerator(mlir::MLIRContext &context) : builder(&context) {}
 
   mlir::ModuleOp genModuleOp(ProgramAST &ast);
 };
@@ -57,20 +55,19 @@ class LLVMGenerator {
   LLVMGenerator(llvm::LLVMContext &context)
       : builder(context),
         theModule(std::make_unique<llvm::Module>("EdgeModule", context)),
-        ctx(context) {
-    std::puts("Initializing LLVM Generator...");
-  }
+        ctx(context) {}
   std::unique_ptr<llvm::Module> codeGenModule(ProgramAST &ast);
 };
 
 class NativeGenerator {
  private:
   std::unique_ptr<llvm::Module> module;
+  std::unique_ptr<SelectionDAG> DAG;
 
  public:
   NativeGenerator(std::unique_ptr<llvm::Module> module)
       : module(std::move(module)) {}
-  std::unique_ptr<AssemblyModule> lowerLLVMToAssembly();
+  void lowerLLVMToAssembly();
 };
 
 }  // namespace edge
