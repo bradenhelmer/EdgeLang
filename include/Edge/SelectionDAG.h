@@ -3,13 +3,14 @@
 // Defines the SelectionDAG interface.
 #ifndef EDGE_SELECTION_DAG_H
 #define EDGE_SELECTION_DAG_H
-#include <llvm/ADT/DenseMap.h>
+#include <llvm/ADT/ilist.h>
 #include <llvm/IR/BasicBlock.h>
-#include <llvm/IR/Value.h>
+
+#include <cstdint>
 
 namespace edge {
 
-enum class SDNodeType : unsigned char {
+enum class X86Opcode : uint32_t {
   ADD,
   SUB,
   MUL,
@@ -17,28 +18,29 @@ enum class SDNodeType : unsigned char {
   LOAD,
   STORE,
   CALL,
-  RET
+  STACKALLOC
 };
 
-class SelectionDAGNode {
+class SelectionDAGNode : public llvm::ilist_node<SelectionDAGNode> {
  private:
-  SDNodeType type;
+  X86Opcode Opcode;
+  int32_t StackOffset;
 
  public:
-  SDNodeType getNodeType() const { return type; }
+  SelectionDAGNode(X86Opcode Opcode, int32_t StackOffset = -1)
+      : Opcode(Opcode), StackOffset(StackOffset) {}
 };
 
-// This is a simple SelectionDAG implementation. It is loosely
-// based off of LLVMs SD, using an llvm::DenseMap to map
-// llvm::Values to edge::SelectionDAGNodes.
 class SelectionDAG {
  public:
   SelectionDAG(const llvm::BasicBlock &MainBlock) { build(MainBlock); }
 
  private:
-  llvm::DenseMap<const llvm::Value *, SelectionDAGNode> Nodes;
-
   void build(const llvm::BasicBlock &MainBlock);
+  llvm::ilist<SelectionDAGNode> Nodes;
+  llvm::DenseMap<const llvm::Value *, SelectionDAGNode *> ValueToNodeMap;
+
+  uint32_t StackSpace = 0;
 };
 
 }  // namespace edge
