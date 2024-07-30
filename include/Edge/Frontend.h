@@ -53,7 +53,7 @@ static inline bool isOperator(TokenKind kind) {
 struct Token {
   const char *start;
   const char *end;
-  llvm::StringRef tokenStr;
+  std::string tokenStr;
   TokenKind kind;
   Token() : tokenStr("") {}
   inline size_t getLength() const { return (end - start) + 1; }
@@ -113,12 +113,12 @@ class IntegerLiteralExpr : public Expr {
 
 class AssigneeReferenceExpr : public Expr {
  private:
-  const llvm::StringRef assignee;
+  const std::string assignee;
 
  public:
-  AssigneeReferenceExpr(ProgramAST *ast, const llvm::StringRef &assignee)
+  AssigneeReferenceExpr(ProgramAST *ast, const std::string &assignee)
       : Expr(ast), assignee(assignee) {}
-  const llvm::StringRef &getAssignee() const { return assignee; }
+  llvm::StringRef getAssignee() const { return assignee; }
   ExprType getType() const override { return ASSIGNEE_REF; }
 };
 
@@ -144,14 +144,14 @@ class BinaryOpExpr : public Expr {
 class AssignStmt {
  private:
   ProgramAST *ast;
-  const llvm::StringRef assignee;
+  const std::string assignee;
   Expr *expr;
 
  public:
-  AssignStmt(ProgramAST *ast, const llvm::StringRef &assignee, Expr *expr)
+  AssignStmt(ProgramAST *ast, const std::string &assignee, Expr *expr)
       : ast(ast), assignee(assignee), expr(std::move(expr)) {}
   ~AssignStmt() { delete expr; }
-  const llvm::StringRef &getAssignee() const { return assignee; }
+  llvm::StringRef getAssignee() const { return assignee; }
   Expr &getExpr() const { return *expr; }
 };
 
@@ -175,9 +175,9 @@ class ProgramAST {
   ProgramAST() = default;
   ~ProgramAST();
   void attachAssignExpr(AssignStmt *assignExpr) {
-    exprList.push_back(std::move(assignExpr));
+    exprList.push_back(assignExpr);
   }
-  void attachOutputStmt(OutputStmt *stmt) { output = std::move(stmt); }
+  void attachOutputStmt(OutputStmt *stmt) { output = stmt; }
   llvm::SmallVector<AssignStmt *> &getAssignStmts() { return exprList; }
   OutputStmt &getOutputStmt() { return *output; }
 };

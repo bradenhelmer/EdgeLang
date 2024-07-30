@@ -19,7 +19,12 @@ set(EXE ${CMAKE_BINARY_DIR}/edge)
 set(DBG lldb)
 set(VALGRIND valgrind)
 
+# LLVM / MLIR
+find_package(MLIR REQUIRED CONFIG)
+find_package(LLVM REQUIRED CONFIG)
+
 if ((CMAKE_BUILD_TYPE STREQUAL "Debug") AND (DEFINED ENV{LLVM_DEBUG_BUILD}))
+	message("test")
 	set(MLIR_DIR "$ENV{LLVM_DEBUG_BUILD}/lib/cmake/mlir")
 	set(LLVM_DIR "$ENV{LLVM_DEBUG_BUILD}/lib/cmake/llvm")
 endif()
@@ -31,10 +36,6 @@ set(LLVM_LINK_COMPONENTS Core Support IRReader IRPrinter)
 set(LIB_DIR "${CMAKE_SOURCE_DIR}/lib")
 file(GLOB SOURCES "${LIB_DIR}/*.cpp")
 file(GLOB_RECURSE HEADERS "include/Edge/*.h")
-
-# LLVM / MLIR
-find_package(MLIR REQUIRED CONFIG)
-find_package(LLVM REQUIRED CONFIG)
 
 # Load TableGen and LLVM modules.
 include(AddLLVM)

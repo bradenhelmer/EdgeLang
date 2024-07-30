@@ -154,7 +154,7 @@ bool Parser::parseProgram(ProgramAST *out) {
   }
 
   while (!match(keyword_output) && match(ID)) {
-    llvm::StringRef assignee = currentToken->tokenStr;
+    std::string assignee(currentToken->tokenStr);
     advance();
 
     if (!match(ASSIGN)) {
@@ -186,7 +186,7 @@ Expr *Parser::parseExpr(ProgramAST *out) {
   switch (currentToken->kind) {
     case INTEGER:
       LHS = new IntegerLiteralExpr(
-          out, static_cast<int64_t>(std::stol(currentToken->tokenStr.str())));
+          out, static_cast<int64_t>(std::stol(currentToken->tokenStr)));
       break;
     case ID:
       LHS = new AssigneeReferenceExpr(out, currentToken->tokenStr);

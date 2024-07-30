@@ -69,8 +69,8 @@ void Toolchain::executeNativeToolchain() {
     exit(1);
   }
 
-  auto context = std::make_unique<llvm::LLVMContext>();
-  auto module = llvmModuleFromASTQuick(AST, *context);
+  llvm::LLVMContext context;
+  auto module = llvmModuleFromASTQuick(AST, context);
   module->setSourceFileName(fileName);
 
   NativeGenerator generator(std::move(module));

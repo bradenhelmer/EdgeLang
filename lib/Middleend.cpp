@@ -123,8 +123,8 @@ std::unique_ptr<llvm::Module> LLVMGenerator::codeGenModule(ProgramAST &ast) {
       MT, llvm::Function::LinkageTypes::ExternalLinkage, "main", *theModule);
   mainFunction = MF;
 
-  MF->args().begin()[0].setName("argc");
-  MF->args().begin()[1].setName("argv");
+  /*MF->args().begin()[0].setName("argc");*/
+  /*MF->args().begin()[1].setName("argv");*/
 
   llvm::BasicBlock *BB = llvm::BasicBlock::Create(ctx, "main_block", MF);
   builder.SetInsertPoint(BB);
@@ -142,7 +142,7 @@ std::unique_ptr<llvm::Module> LLVMGenerator::codeGenModule(ProgramAST &ast) {
 void LLVMGenerator::codeGenAssignStmt(const AssignStmt &AS) {
   llvm::AllocaInst *alloca;
 
-  llvm::StringRef assignee = AS.getAssignee();
+  auto assignee = AS.getAssignee();
   llvm::Value *expr = codeGenExpr(AS.getExpr());
 
   if (!(alloca = static_cast<llvm::AllocaInst *>(
@@ -228,7 +228,8 @@ void NativeGenerator::lowerLLVMToAssembly() {
   const auto &mainblock = module->getFunction("main")->getEntryBlock();
 
   // Construct DAG
-  DAG = std::make_unique<SelectionDAG>(mainblock);
+  auto DAG = std::make_unique<SelectionDAG>(mainblock);
+  DAG->printStackObjects();
 }
 
 }  // namespace edge

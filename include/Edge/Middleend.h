@@ -62,7 +62,6 @@ class LLVMGenerator {
 class NativeGenerator {
  private:
   std::unique_ptr<llvm::Module> module;
-  std::unique_ptr<SelectionDAG> DAG;
 
  public:
   NativeGenerator(std::unique_ptr<llvm::Module> module)
