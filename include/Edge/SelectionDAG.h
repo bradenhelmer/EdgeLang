@@ -16,25 +16,32 @@
 namespace edge {
 
 enum class X86SelectionDAGNodeType : uint32_t {
-  // Memory Types
-  STACK_ALLOCATION,
-  LOAD,
-  STORE,
   // Arithmetic Types
   ADD,
   SUB,
   MUL,
   DIV,
+
+  // Memory Types
+  STACK_ALLOCATION,
+  LOAD,
+  REGISTER,
+  GLOBAL,
+  STORE,
+
+  // Other
+  CALL,
+  RET,
+
   // Value Types
   CONSTANT,
-  REGISTER,
+
   // Unknown
   UNKNOWN
 };
 
 class SelectionDAGNode;
 class SelectionDAGValue;
-class StackAllocSelectionDAGNode;
 
 // Represents an edge in the SelectionDAG between nodes.
 class SelectionDAGUse {
@@ -74,7 +81,15 @@ class ConstantSelectionDAGNode : public SelectionDAGNode {
   int64_t getValue() const { return value; }
 };
 
-class StackAllocSelectionDAGNode : public SelectionDAGNode {
+// Base class for a memory location
+class MemLocSelectionDAGNode : public SelectionDAGNode {
+ public:
+  MemLocSelectionDAGNode(X86SelectionDAGNodeType MemType)
+      : SelectionDAGNode(MemType) {}
+};
+
+// Node for stack allocations, these are built from llvm::Allocas insts.
+class StackAllocSelectionDAGNode : public MemLocSelectionDAGNode {
   // Name of the variable we are referencing.
   const std::string Name;
 
@@ -85,7 +100,7 @@ class StackAllocSelectionDAGNode : public SelectionDAGNode {
  public:
   StackAllocSelectionDAGNode(const llvm::StringRef Name, int32_t SizeInBytes,
                              int32_t Offset)
-      : SelectionDAGNode(X86SelectionDAGNodeType::STACK_ALLOCATION),
+      : MemLocSelectionDAGNode(X86SelectionDAGNodeType::STACK_ALLOCATION),
         Name(Name),
         SizeInBytes(SizeInBytes),
         Offset(Offset) {}
@@ -94,23 +109,52 @@ class StackAllocSelectionDAGNode : public SelectionDAGNode {
   int32_t getOffset() const { return Offset; }
 };
 
-class LoadSDNode : public SelectionDAGNode {
-  StackAllocSelectionDAGNode *MemLoc;
+// Node for register locations.
+class RegSelectionDAGNode : public MemLocSelectionDAGNode {
+  const std::string name;
 
  public:
-  LoadSDNode(StackAllocSelectionDAGNode *MemLoc)
-      : SelectionDAGNode(X86SelectionDAGNodeType::LOAD), MemLoc(MemLoc) {};
+  RegSelectionDAGNode(const std::string &name)
+      : MemLocSelectionDAGNode(X86SelectionDAGNodeType::REGISTER),
+        name(std::move(name)) {}
+
+  const std::string &getName() const { return name; }
 };
-class StoreSDNode : public SelectionDAGNode {
-  StackAllocSelectionDAGNode *MemLoc;
-  SelectionDAGValue *ValToStore;
+
+// Node for global locations.
+class GlobalAddrSelectionDAGNode : public MemLocSelectionDAGNode {
+  const std::string GlblName;
 
  public:
-  StoreSDNode(StackAllocSelectionDAGNode *MemLoc, SelectionDAGValue *ValToStore)
+  GlobalAddrSelectionDAGNode(const std::string &name)
+      : MemLocSelectionDAGNode(X86SelectionDAGNodeType::GLOBAL),
+        GlblName(std::move(name)) {}
+};
+
+class LoadSDNode : public SelectionDAGNode {
+  MemLocSelectionDAGNode *Dest;
+  SelectionDAGValue *Src;
+
+ public:
+  // Here we initialize the destination register to nullptr as some load instrs,
+  // such as lowering a call will require specific registers. Otherwise,
+  // the register allocator can provide dest as it pleases.
+  LoadSDNode(SelectionDAGValue *Src, MemLocSelectionDAGNode *Dest = nullptr)
+      : SelectionDAGNode(X86SelectionDAGNodeType::LOAD), Src(Src), Dest(Dest) {}
+
+  void setDest(MemLocSelectionDAGNode *Dest) const { Dest = Dest; }
+};
+
+class StoreSDNode : public SelectionDAGNode {
+  MemLocSelectionDAGNode *Dest;
+  SelectionDAGValue *Src;
+
+ public:
+  StoreSDNode(MemLocSelectionDAGNode *Dest, SelectionDAGValue *Src)
       : SelectionDAGNode(X86SelectionDAGNodeType::STORE),
-        MemLoc(MemLoc),
-        ValToStore(ValToStore) {}
-  void setValue(SelectionDAGValue *Val) { ValToStore = Val; }
+        Dest(Dest),
+        Src(Src) {}
+  void setValue(SelectionDAGValue *Val) { Src = Val; }
 };
 
 // Wrapper for a node producing a runtime 'value', this could be:
@@ -147,9 +191,11 @@ class SelectionDAG {
 
   // Nodes
   llvm::ilist<SelectionDAGNode> Nodes;
+  SelectionDAGNode *root;
 
   // Value Map
   std::unordered_map<const llvm::Value *, SelectionDAGValue> ValueMap;
+  std::vector<SelectionDAGValue> UnMappedValues;
 
   // Stack allocated byte count.
   int32_t StackSizeInBytes = 0;
@@ -159,9 +205,11 @@ class SelectionDAG {
 
   // Selection Methods
   void SelectAlloca(const llvm::AllocaInst &alloca);
-  void SelectLoad(const llvm::LoadInst &load);
-  void SelectStore(const llvm::StoreInst &store);
   void SelectBinary(const llvm::Instruction &bin);
+  void SelectCall(const llvm::CallInst &call);
+  void SelectLoad(const llvm::LoadInst &load);
+  void SelectReturn(const llvm::ReturnInst &ret);
+  void SelectStore(const llvm::StoreInst &store);
 
   void TryCreateConstantNode(llvm::Value *Val);
 

@@ -24,7 +24,6 @@ find_package(MLIR REQUIRED CONFIG)
 find_package(LLVM REQUIRED CONFIG)
 
 if ((CMAKE_BUILD_TYPE STREQUAL "Debug") AND (DEFINED ENV{LLVM_DEBUG_BUILD}))
-	message("test")
 	set(MLIR_DIR "$ENV{LLVM_DEBUG_BUILD}/lib/cmake/mlir")
 	set(LLVM_DIR "$ENV{LLVM_DEBUG_BUILD}/lib/cmake/llvm")
 endif()
