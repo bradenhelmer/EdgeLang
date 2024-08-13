@@ -229,7 +229,7 @@ void NativeGenerator::lowerLLVMToAssembly() {
 
   // Construct DAG
   auto DAG = std::make_unique<SelectionDAG>(mainblock);
-  DAG->printStackObjects();
+  DAG->printRaw();
 }
 
 }  // namespace edge

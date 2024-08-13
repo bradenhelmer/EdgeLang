@@ -40,6 +40,56 @@ enum class X86SelectionDAGNodeType : uint32_t {
   UNKNOWN
 };
 
+static const std::string getNodeTypeStr(X86SelectionDAGNodeType type) {
+  switch (type) {
+    case X86SelectionDAGNodeType::ADD:
+      return "ADD";
+    case X86SelectionDAGNodeType::SUB:
+      return "SUB";
+    case X86SelectionDAGNodeType::MUL:
+      return "MUL";
+    case X86SelectionDAGNodeType::DIV:
+      return "DIV";
+    case X86SelectionDAGNodeType::STACK_ALLOCATION:
+      return "STACK_ALLOCATION";
+    case X86SelectionDAGNodeType::LOAD:
+      return "LOAD";
+    case X86SelectionDAGNodeType::REGISTER:
+      return "REGISTER";
+    case X86SelectionDAGNodeType::GLOBAL:
+      return "GLOBAL";
+    case X86SelectionDAGNodeType::STORE:
+      return "STORE";
+    case X86SelectionDAGNodeType::CALL:
+      return "CALL";
+    case X86SelectionDAGNodeType::RET:
+      return "RET";
+    case X86SelectionDAGNodeType::CONSTANT:
+      return "CONSTANT";
+    case X86SelectionDAGNodeType::UNKNOWN:
+      return "UNKNOWN";
+    default:
+      return "";
+  };
+}
+
+static bool isValueProducing(X86SelectionDAGNodeType type) {
+  switch (type) {
+    case X86SelectionDAGNodeType::ADD:
+    case X86SelectionDAGNodeType::SUB:
+    case X86SelectionDAGNodeType::MUL:
+    case X86SelectionDAGNodeType::DIV:
+    case X86SelectionDAGNodeType::STACK_ALLOCATION:
+    case X86SelectionDAGNodeType::LOAD:
+    case X86SelectionDAGNodeType::CONSTANT:
+    case X86SelectionDAGNodeType::GLOBAL:
+    case X86SelectionDAGNodeType::REGISTER:
+      return true;
+    default:
+      return false;
+  }
+}
+
 class SelectionDAGNode;
 class SelectionDAGValue;
 
@@ -61,6 +111,8 @@ class SelectionDAGNode : public llvm::ilist_node<SelectionDAGNode> {
   SelectionDAGUse *Operands[3];
   uint8_t OpCount = 0;
 
+  SelectionDAGValue *ValueProduced = nullptr;
+
  public:
   SelectionDAGNode(X86SelectionDAGNodeType type) : type(type) {}
   ~SelectionDAGNode() {
@@ -70,6 +122,8 @@ class SelectionDAGNode : public llvm::ilist_node<SelectionDAGNode> {
   X86SelectionDAGNodeType getType() const { return type; }
   void addOperand(SelectionDAGUse *Use) { Operands[OpCount++] = Use; }
   SelectionDAGUse *getOperand(uint8_t index) { return Operands[index]; }
+  void setValue(SelectionDAGValue *Val) { ValueProduced = Val; }
+  SelectionDAGValue *getValueProduced() const { return ValueProduced; }
 };
 
 class ConstantSelectionDAGNode : public SelectionDAGNode {
@@ -182,6 +236,7 @@ class SelectionDAGValue {
 
   ~SelectionDAGValue() = default;
   SelectionDAGNode *getNode() const { return Node; }
+  const std::string &getValueName() const { return ValueName; }
 };
 
 // Directed Acyclic Graph of Instruction Selection Nodes
@@ -194,8 +249,8 @@ class SelectionDAG {
   SelectionDAGNode *root;
 
   // Value Map
-  std::unordered_map<const llvm::Value *, SelectionDAGValue> ValueMap;
-  std::vector<SelectionDAGValue> UnMappedValues;
+  std::unordered_map<const llvm::Value *, SelectionDAGValue *> ValueMap;
+  std::vector<SelectionDAGValue *> UnMappedValues;
 
   // Stack allocated byte count.
   int32_t StackSizeInBytes = 0;
@@ -219,6 +274,8 @@ class SelectionDAG {
   }
 
   ~SelectionDAG();
+
+  void printRaw();
 
   void printStackObjects();
 };

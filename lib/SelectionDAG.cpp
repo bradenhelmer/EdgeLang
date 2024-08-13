@@ -11,7 +11,15 @@
 
 using namespace edge;
 
-SelectionDAG::~SelectionDAG() { Nodes.clear(); }
+SelectionDAG::~SelectionDAG() {
+  Nodes.clear();
+  for (auto &P : ValueMap) {
+    delete P.second;
+  }
+  for (auto &P : UnMappedValues) {
+    delete P;
+  }
+}
 
 void SelectionDAG::build() {
   for (const auto &I : MainBlock) {
@@ -54,7 +62,9 @@ void SelectionDAG::SelectAlloca(const llvm::AllocaInst &alloca) {
                                           StackSizeInBytes);
   StackSizeInBytes += size;
   Nodes.push_back(N);
-  ValueMap.insert(std::make_pair(&alloca, SelectionDAGValue(N)));
+  auto V = new SelectionDAGValue(N);
+  ValueMap.insert(std::make_pair(&alloca, V));
+  N->setValue(V);
 }
 
 void SelectionDAG::SelectBinary(const llvm::Instruction &I) {
@@ -81,9 +91,11 @@ void SelectionDAG::SelectBinary(const llvm::Instruction &I) {
 
   auto N = new SelectionDAGNode(getX86SDNodeType(I.getOpcode()));
   Nodes.push_back(N);
-  N->addOperand(new SelectionDAGUse(&ValueMap.at(RHS), N));
-  N->addOperand(new SelectionDAGUse(&ValueMap.at(LHS), N));
-  ValueMap.insert(std::make_pair(&I, SelectionDAGValue(N)));
+  N->addOperand(new SelectionDAGUse(ValueMap.at(RHS), N));
+  N->addOperand(new SelectionDAGUse(ValueMap.at(LHS), N));
+  auto V = new SelectionDAGValue(N);
+  ValueMap.insert(std::make_pair(&I, V));
+  N->setValue(V);
 }
 
 // Since EdgeLang only has one call to printf at the end,
@@ -93,8 +105,9 @@ void SelectionDAG::SelectCall(const llvm::CallInst &call) {
   auto FMT_SPEC_G = MainBlock.getModule()->getNamedGlobal("fmt_spec");
   auto GAN = new GlobalAddrSelectionDAGNode("fmt_spec");
   Nodes.push_back(GAN);
-  auto GAV = SelectionDAGValue(GAN);
+  auto GAV = new SelectionDAGValue(GAN);
   ValueMap.insert(std::make_pair(FMT_SPEC_G, GAV));
+  GAN->setValue(GAV);
 
   // Create initial call node
   auto CN = new SelectionDAGNode(X86SelectionDAGNodeType::CALL);
@@ -109,15 +122,17 @@ void SelectionDAG::SelectCall(const llvm::CallInst &call) {
     auto PV = ValueMap.at(param);
     auto RN = new RegSelectionDAGNode(X86_64_CALL_REGS[i]);
     Nodes.push_back(RN);
-    auto RV = SelectionDAGValue(RN);
+    auto RV = new SelectionDAGValue(RN);
+    RN->setValue(RV);
     UnMappedValues.push_back(RV);
-    auto LN = new LoadSDNode(&PV, RN);
+    auto LN = new LoadSDNode(PV, RN);
     Nodes.push_back(LN);
-    LN->addOperand(new SelectionDAGUse(&PV, LN));
-    LN->addOperand(new SelectionDAGUse(&RV, LN));
-    auto LV = SelectionDAGValue(LN);
+    LN->addOperand(new SelectionDAGUse(PV, LN));
+    LN->addOperand(new SelectionDAGUse(RV, LN));
+    auto LV = new SelectionDAGValue(LN);
     UnMappedValues.push_back(LV);
-    CN->addOperand(new SelectionDAGUse(&LV, CN));
+    LN->setValue(LV);
+    CN->addOperand(new SelectionDAGUse(LV, CN));
   }
 
   Nodes.push_back(CN);
@@ -128,11 +143,13 @@ void SelectionDAG::SelectLoad(const llvm::LoadInst &load) {
   // at the beginning of the 'main' basic block, we can assume
   // that all allocas have been selected and we have a valid
   // value to retrieve from the table.
-  SelectionDAGValue allocaVal = ValueMap.at(load.getOperand(0));
-  auto LN = new LoadSDNode(&allocaVal);
-  auto U = new SelectionDAGUse(&allocaVal, LN);
-  ValueMap.insert(std::make_pair(&load, SelectionDAGValue(LN)));
+  auto allocaVal = ValueMap.at(load.getOperand(0));
+  auto LN = new LoadSDNode(allocaVal);
+  auto U = new SelectionDAGUse(allocaVal, LN);
+  auto LV = new SelectionDAGValue(LN);
+  ValueMap.insert(std::make_pair(&load, LV));
   LN->addOperand(U);
+  LN->setValue(LV);
   Nodes.push_back(LN);
 }
 
@@ -141,7 +158,7 @@ void SelectionDAG::SelectReturn(const llvm::ReturnInst &ret) {
   auto ValToRet = ret.getOperand(0);
   TryCreateConstantNode(ValToRet);
   auto RN = new SelectionDAGNode(X86SelectionDAGNodeType::RET);
-  RN->addOperand(new SelectionDAGUse(&ValueMap.at(ValToRet), RN));
+  RN->addOperand(new SelectionDAGUse(ValueMap.at(ValToRet), RN));
   Nodes.push_back(RN);
 }
 
@@ -152,11 +169,11 @@ void SelectionDAG::SelectStore(const llvm::StoreInst &store) {
   auto ValToStore = store.getOperand(0);
   auto allocaVal = ValueMap.at(store.getOperand(1));
   auto SN = new StoreSDNode(
-      static_cast<StackAllocSelectionDAGNode *>(allocaVal.getNode()), nullptr);
+      static_cast<StackAllocSelectionDAGNode *>(allocaVal->getNode()), nullptr);
   TryCreateConstantNode(ValToStore);
   auto SDValToStore = ValueMap.at(ValToStore);
-  SN->addOperand(new SelectionDAGUse(&allocaVal, SN));
-  SN->addOperand(new SelectionDAGUse(&SDValToStore, SN));
+  SN->addOperand(new SelectionDAGUse(allocaVal, SN));
+  SN->addOperand(new SelectionDAGUse(SDValToStore, SN));
   Nodes.push_back(SN);
 }
 
@@ -166,7 +183,9 @@ void SelectionDAG::TryCreateConstantNode(llvm::Value *Val) {
     auto CI = static_cast<llvm::ConstantInt *>(Val);
     auto CN = new ConstantSelectionDAGNode(CI->getValue().getLimitedValue());
     Nodes.push_back(CN);
-    ValueMap.insert(std::make_pair(Val, SelectionDAGValue(CN)));
+    auto CV = new SelectionDAGValue(CN);
+    ValueMap.insert(std::make_pair(Val, CV));
+    CN->setValue(CV);
   }
 }
 
@@ -177,6 +196,14 @@ void SelectionDAG::printStackObjects() {
       const auto &SA = static_cast<const StackAllocSelectionDAGNode &>(N);
       llvm::outs() << "Name: " << SA.getName() << ", Offset: " << SA.getOffset()
                    << ", Size (Bytes): " << SA.getSizeInBytes() << "\n";
+    }
+  }
+}
+
+void SelectionDAG::printRaw() {
+  for (const auto &N : Nodes) {
+    if (isValueProducing(N.getType())) {
+      llvm::outs() << N.getValueProduced()->getValueName() << "\n";
     }
   }
 }
