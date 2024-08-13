@@ -102,6 +102,7 @@ class SelectionDAGUse {
   SelectionDAGUse(SelectionDAGValue *Val, SelectionDAGNode *User)
       : Val(Val), User(User) {}
   ~SelectionDAGUse() = default;
+  SelectionDAGValue *getValue() const { return Val; }
 };
 
 // Base node class for nodes in SelectionDAG
@@ -121,7 +122,8 @@ class SelectionDAGNode : public llvm::ilist_node<SelectionDAGNode> {
 
   X86SelectionDAGNodeType getType() const { return type; }
   void addOperand(SelectionDAGUse *Use) { Operands[OpCount++] = Use; }
-  SelectionDAGUse *getOperand(uint8_t index) { return Operands[index]; }
+  uint8_t getOpCount() const { return OpCount; }
+  SelectionDAGUse *getOperand(uint8_t index) const { return Operands[index]; }
   void setValue(SelectionDAGValue *Val) { ValueProduced = Val; }
   SelectionDAGValue *getValueProduced() const { return ValueProduced; }
 };

@@ -201,9 +201,19 @@ void SelectionDAG::printStackObjects() {
 }
 
 void SelectionDAG::printRaw() {
+  uint16_t idx = 0;
+  llvm::outs() << "DAG\n---\n";
   for (const auto &N : Nodes) {
-    if (isValueProducing(N.getType())) {
-      llvm::outs() << N.getValueProduced()->getValueName() << "\n";
+    auto type = N.getType();
+    llvm::outs() << "Node #" << idx++ << ": " << getNodeTypeStr(type);
+    if (isValueProducing(type)) {
+      llvm::outs() << " -> " << N.getValueProduced()->getValueName();
+    }
+    llvm::outs() << '\n';
+
+    for (int i = 0; i < N.getOpCount(); ++i) {
+      llvm::outs() << "  |_ " << N.getOperand(i)->getValue()->getValueName()
+                   << "\n";
     }
   }
 }
